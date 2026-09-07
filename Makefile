@@ -44,6 +44,9 @@ reproduce: data image ## THE ONE COMMAND. Grader runs this.
 	docker run --rm \
 	  -v "$$PWD/data:/app/data:ro" \
 	  -v "$$PWD/reports:/app/reports" \
+	  -v "$(IMAGE)-mlruns:/app/mlruns" \
+	  -e GIT_COMMIT="$$(git rev-parse HEAD)" \
+	  -e GIT_PYTHON_REFRESH=quiet \
 	  -e MLFLOW_TRACKING_URI=sqlite:////app/reports/mlflow.db \
 	  $(IMAGE):$(TAG) --seed $(SEED) --metrics-out /app/reports/metrics.json
 

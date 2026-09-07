@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -21,8 +22,11 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 
 from src import config, data, seeds
 
-
 def git_commit() -> str:
+    injected = os.environ.get("GIT_COMMIT")
+    if injected:
+        return injected
+
     try:
         out = subprocess.run(
             ["git", "rev-parse", "HEAD"],
