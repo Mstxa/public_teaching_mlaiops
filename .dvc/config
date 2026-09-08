@@ -1,0 +1,4 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = gs://itcs355-6688121-mlops/itcs355/dvc
