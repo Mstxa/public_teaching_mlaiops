@@ -17,6 +17,7 @@ from pathlib import Path
 
 import mlflow
 import mlflow.sklearn
+import yaml
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import average_precision_score, roc_auc_score
 
@@ -36,6 +37,13 @@ def git_commit() -> str:
     except Exception:
         return "unknown"
 
+def dvc_data_hash() -> str:
+    dvc_file = config.REPO_ROOT / "data" / "raw.dvc"
+    try:
+        content = yaml.safe_load(dvc_file.read_text())
+        return str(content["outs"][0]["md5"])
+    except Exception:
+        return "unknown"
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="ITCS355 Lab 1 — reproducible training")
@@ -74,7 +82,8 @@ def main() -> None:
         mlflow.set_tags({
             "git_commit": git_commit(),
             "data_fingerprint": fingerprint,
-            "split_strategy": "group_by_machine_id",
+            "dvc_data_hash": dvc_data_hash(),
+	    "split_strategy": "group_by_machine_id",
             "n_train_rows": len(train_df),
             "n_val_rows": len(val_df),
             "n_test_rows": len(test_df),
