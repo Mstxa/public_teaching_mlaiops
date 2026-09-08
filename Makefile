@@ -48,7 +48,7 @@ reproduce: data image ## THE ONE COMMAND. Grader runs this.
 	  -e GIT_COMMIT="$$(git rev-parse HEAD)" \
 	  -e GIT_PYTHON_REFRESH=quiet \
 	  -e MLFLOW_TRACKING_URI=sqlite:////app/reports/mlflow.db \
-	  $(IMAGE):$(TAG) --seed $(SEED) --metrics-out /app/reports/metrics.json
+	  $(IMAGE):$(TAG) --n-estimators 150 --max-depth 6 --min-samples-leaf 5 --seed $(SEED) --metrics-out /app/reports/metrics.json
 
 verify: ## Check the produced metric against the README claim
 	python scripts/verify_metric.py

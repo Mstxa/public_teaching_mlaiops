@@ -42,4 +42,4 @@ USER runner
 # Credentials NEVER enter an image layer. They arrive at runtime from SECRET_STORE_PATH
 # or from the platform's identity. If you find yourself adding an ARG for a key, stop.
 ENTRYPOINT ["python", "-m", "src.train"]
-CMD ["--n-estimators", "200", "--max-depth", "8"]
+CMD ["--n-estimators", "150", "--max-depth", "6", "--min-samples-leaf", "5"]
