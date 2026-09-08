@@ -94,7 +94,9 @@ def main() -> None:
             max_depth=args.max_depth,
             min_samples_leaf=args.min_samples_leaf,
             random_state=seed,
-            n_jobs=-1,
+            # Single-row inference is latency-sensitive; dispatching work across
+            # multiple workers costs more than it saves for this small forest.
+            n_jobs=1,
         )
         model.fit(train_df[data.FEATURES], train_df[data.TARGET])
 
