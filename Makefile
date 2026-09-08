@@ -21,8 +21,12 @@ setup: ## Install dependencies and print environment status
 cloud-check: ## Resolve the eight capability slots
 	python scripts/cloud_check.py
 
-data: ## Generate the default dataset (deterministic)
-	python scripts/make_dataset.py --seed $(SEED)
+data: image ## Generate the default dataset (deterministic)
+	docker run --rm \
+	  --user "$$(id -u):$$(id -g)" \
+	  --entrypoint python \
+	  -v "$$PWD/data:/app/data" \
+	  $(IMAGE):$(TAG) scripts/make_dataset.py --seed $(SEED)
 
 test: ## Run data contract and split property tests
 	pytest -q tests/
@@ -41,10 +45,12 @@ image-push: image ## Push to CONTAINER_REGISTRY via your adapter
 	print(get_adapter(config.load()).push_image(\"$(IMAGE):$(TAG)\"))"
 
 reproduce: data image ## THE ONE COMMAND. Grader runs this.
+	mkdir -p reports mlruns
 	docker run --rm \
+	  --user "$$(id -u):$$(id -g)" \
 	  -v "$$PWD/data:/app/data:ro" \
 	  -v "$$PWD/reports:/app/reports" \
-	  -v "$(IMAGE)-mlruns:/app/mlruns" \
+	  -v "$$PWD/mlruns:/app/mlruns" \
 	  -e GIT_COMMIT="$$(git rev-parse HEAD)" \
 	  -e GIT_PYTHON_REFRESH=quiet \
 	  -e MLFLOW_TRACKING_URI=sqlite:////app/reports/mlflow.db \
