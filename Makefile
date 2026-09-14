@@ -85,8 +85,8 @@ reload-check: ## Load the registered model by version and score rows
 promote-staging: ## Promote the checked model version to the staging alias
 	python -m scripts.promote_lab2 --version $(VERSION)
 
-cost-report: ## Reconcile trial estimates with Cloud Billing; pass ACTUAL_THB
-	python -m scripts.lab2_cost_report --actual-thb $(ACTUAL_THB)
+cost-report: ## Record estimate now; later pass ACTUAL_THB from Cloud Billing
+	python -m scripts.lab2_cost_report $(if $(ACTUAL_THB),--actual-thb $(ACTUAL_THB))
 
 # --- Lab 3 -------------------------------------------------------------------
 serve: ## Run the inference service locally on :8080

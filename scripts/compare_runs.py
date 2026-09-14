@@ -40,6 +40,7 @@ def main() -> int:
 
     metric_col = f"metrics.{args.metric}"
     cost_col = "metrics.cost_thb"
+    total_estimated_cost = runs[cost_col].sum()
     table = pd.DataFrame({
         "run_id": runs["run_id"].str[:8],
         args.metric: runs[metric_col].round(4),
@@ -57,7 +58,7 @@ def main() -> int:
         "# Lab 2 — Run comparison",
         "",
         f"Experiment `{args.experiment}` · {len(table)} trials · "
-        f"estimated compute cost {table['est_cost_thb'].sum():.4f} THB",
+        f"estimated compute cost {total_estimated_cost:.4f} THB",
         "",
         "Cost uses a conservative planning rate, not the final Cloud Billing amount.",
         "",

@@ -112,6 +112,8 @@ The selected trial and <=200-word comparison are in `reports/lab2-comparison.md`
 
 In a real organisation, an ML platform release owner should control the staging alias. They should require the 12-trial comparison, validation and held-out test metrics, seed variance, actual cloud cost, complete code/data/job/image lineage, a successful registry reload check, and a review of data drift and failure risks before promotion. The computed trial costs are estimates until reconciled with Cloud Billing.
 
+Run `make cost-report` to record the per-trial estimate while Billing data is pending. Once the Lab 2 usage appears in Cloud Billing, rerun with `make cost-report ACTUAL_THB=<observed usage cost>` and commit the updated report. A zero in a report that has not yet reached the run date is not an observed cost.
+
 ---
 
 ## Checklist before you submit

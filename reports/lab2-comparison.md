@@ -1,6 +1,6 @@
 # Lab 2 — Run comparison
 
-Experiment `itcs355-lab2` · 12 trials · estimated compute cost 2.4231 THB
+Experiment `itcs355-lab2` · 12 trials · estimated compute cost 2.4233 THB
 
 Cost uses a conservative planning rate, not the final Cloud Billing amount.
 
@@ -23,6 +23,6 @@ Cost uses a conservative planning rate, not the final Cloud Billing amount.
 
 ## Selection and justification
 
-เลือก trial 01 (100 trees, max_depth 4, min_samples_leaf 5) จากงาน Spot: validation ROC AUC 0.8426 และ test ROC AUC 0.8533. แม้เป็นคะแนน validation สูงสุด แต่เหนือ trial 00 เพียง 0.00016 ซึ่งเล็กกว่าความผันผวนเมื่อเปลี่ยน seed มาก จึงไม่ถือว่าคะแนนที่ต่างกันนี้พิสูจน์ความเหนือกว่า เลือกรุ่นนี้เพราะใช้ต้นไม้เพียง 100 ต้น ความลึกต่ำ และ leaf 5 ช่วยจำกัดการฟิต noise โดยมีต้นทุนใกล้รุ่นรอง
+I selected trial 01 (100 trees, maximum depth 4, minimum leaf size 5). Its validation ROC AUC was 0.8426, and its held-out test ROC AUC was 0.8533. It had the highest validation score, but its lead over trial 00 was only 0.00016. This gap is much smaller than the change across seeds, so I do not treat it as proof that trial 01 is better. I chose it because it has fewer, shallow trees and a larger leaf size, which may reduce noise fitting at almost the same cost.
 
-เมื่อใช้ seed 20260101 (Spot), 20260102 และ 20260103 (ตรวจซ้ำใน WSL) validation AUC เท่ากับ 0.8426, 0.8479, 0.8492; ค่าเฉลี่ย 0.8466 ส่วนเบี่ยงเบนมาตรฐานตัวอย่าง 0.0035. ค่าฝึกประเมิน 0.20 บาทต่อครั้ง หรือราว 0.20 บาทต่อเดือนหากฝึกใหม่เดือนละครั้ง ยังไม่รวม storage, logs และราคาจริงจาก Billing. การเลือกนี้อาจผิดหากข้อมูลเซนเซอร์หรืออัตราเครื่องเสียเปลี่ยนหลังใช้งาน จึงควรติดตาม PR AUC และ data drift.
+For this setup, validation AUC was 0.8426 with seed 20260101 on Vertex Spot, and 0.8479 and 0.8492 with seeds 20260102 and 20260103 in WSL. The mean was 0.8466 and the sample standard deviation was 0.0035. Training is estimated at 0.20 THB per run, or about 0.20 THB for one retraining each month, before storage and logs. The real billing cost is still pending. This choice could be wrong if sensor data or failure rates change. I would track PR AUC and changes in the input data.
