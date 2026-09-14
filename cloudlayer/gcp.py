@@ -17,9 +17,11 @@ Hints for Lab 1:
 from __future__ import annotations
 
 import re
+import json
 import subprocess
 import time
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 from urllib.parse import urlparse
 
@@ -190,8 +192,131 @@ class GcpAdapter(CloudAdapter):
             time.sleep(20)
         raise TimeoutError(f"Timed out waiting for {job_id}; the cloud job may still be running")
 
-    # register_model                  -> Lab 2 (Vertex Model Registry)
+    def get_model_version(self, name: str, version: str) -> dict[str, Any]:
+        """Read one explicit Vertex Model Registry version."""
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,62}", name):
+            raise ValueError("Invalid Vertex model ID")
+        if not re.fullmatch(r"[0-9]+|[a-z][a-z0-9-]+", version):
+            raise ValueError("Invalid Vertex model version or alias")
+        resource = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}/models/{name}@{version}"
+        response = self._vertex_session().get(self._vertex_url(resource), timeout=60)
+        response.raise_for_status()
+        return response.json()
+
+    def register_model(self, model_uri: str, name: str) -> str:
+        """Upload a GCS model to Vertex, carrying exact lineage on its version."""
+        if not model_uri.endswith("/model.joblib"):
+            raise ValueError("Expected a GCS model.joblib URI")
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,62}", name):
+            raise ValueError("Invalid Vertex model ID")
+        artifact_uri = model_uri.rsplit("/", 1)[0]
+        with TemporaryDirectory(prefix="itcs355-lineage-") as directory:
+            sidecar = Path(directory) / "lineage.json"
+            self.download(f"{artifact_uri}/lineage.json", str(sidecar))
+            lineage = json.loads(sidecar.read_text())
+        required = (
+            "git_commit", "data_version", "mlflow_run_id", "training_job_id",
+            "image_digest", "seed", "metric_val", "metric_test",
+        )
+        if any(lineage.get(key) in (None, "") for key in required):
+            raise ValueError("Model lineage must contain all eight required fields")
+        if lineage.get("model_uri") != model_uri:
+            raise ValueError("Lineage model_uri does not match the model being registered")
+        image_uri = lineage.get("training_image_uri", "")
+        if not re.fullmatch(r".+@sha256:[0-9a-f]{64}", image_uri):
+            raise ValueError("A digest-pinned container image is required")
+        if lineage["image_digest"] != image_uri.rsplit("@", 1)[1]:
+            raise ValueError("Image digest in lineage does not match the container")
+
+        parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+        model_resource = f"{parent}/models/{name}"
+        session = self._vertex_session()
+        existing = session.get(self._vertex_url(model_resource), timeout=60)
+        if existing.status_code == 200:
+            model = existing.json()
+            if json.loads(model.get("versionDescription", "{}")) != lineage:
+                raise ValueError("Model ID already exists with different lineage; choose a new ID")
+            return str(model["versionId"])
+        if existing.status_code != 404:
+            existing.raise_for_status()
+
+        body = {
+            "modelId": name,
+            "model": {
+                "displayName": name,
+                "artifactUri": artifact_uri,
+                "containerSpec": {"imageUri": image_uri},
+                "versionDescription": json.dumps(lineage, sort_keys=True),
+                "labels": self.cfg.tags(2),
+            },
+        }
+        response = session.post(self._vertex_url(f"{parent}/models:upload"), json=body, timeout=60)
+        response.raise_for_status()
+        operation_name = response.json()["name"]
+        deadline = time.monotonic() + 1200
+        while time.monotonic() < deadline:
+            operation = session.get(self._vertex_url(operation_name), timeout=60)
+            operation.raise_for_status()
+            result = operation.json()
+            if result.get("done"):
+                if result.get("error"):
+                    raise RuntimeError(f"Vertex model upload failed: {result['error']}")
+                version = str(result["response"]["modelVersionId"])
+                registered = self.get_model_version(name, version)
+                if json.loads(registered.get("versionDescription", "{}")) != lineage:
+                    raise RuntimeError("Registered model lost its lineage")
+                return version
+            time.sleep(10)
+        raise TimeoutError(f"Model upload is still running: {operation_name}")
+
+    def promote_model_to_staging(self, name: str, version: str) -> dict[str, Any]:
+        """Assign the mutable staging alias after a successful reload check."""
+        model = self.get_model_version(name, version)
+        if "staging" in model.get("versionAliases", []):
+            return model
+        resource = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}/models/{name}@{version}"
+        response = self._vertex_session().post(
+            self._vertex_url(f"{resource}:mergeVersionAliases"),
+            json={"versionAliases": ["staging"]}, timeout=60,
+        )
+        response.raise_for_status()
+        promoted = response.json()
+        if "staging" not in promoted.get("versionAliases", []):
+            raise RuntimeError("Vertex did not retain the staging alias")
+        return promoted
+
+    def teardown(self, tags: dict[str, str]) -> list[str]:
+        """Cancel only active Lab 2 jobs; terminal jobs already release compute."""
+        if tags != self.cfg.tags(2):
+            raise ValueError("This teardown implementation is scoped to Lab 2")
+        parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+        session = self._vertex_session()
+        label_filter = " AND ".join(f"labels.{key}={value}" for key, value in tags.items())
+        terminal = {
+            "JOB_STATE_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED",
+            "JOB_STATE_EXPIRED",
+        }
+        cancelled: list[str] = []
+        page_token = ""
+        while True:
+            params = {"filter": label_filter, "pageSize": 100}
+            if page_token:
+                params["pageToken"] = page_token
+            response = session.get(self._vertex_url(f"{parent}/customJobs"), params=params, timeout=60)
+            response.raise_for_status()
+            page = response.json()
+            for job in page.get("customJobs", []):
+                if job.get("state") in terminal:
+                    continue
+                job_name = job["name"]
+                cancellation = session.post(self._vertex_url(f"{job_name}:cancel"), json={}, timeout=60)
+                cancellation.raise_for_status()
+                cancelled.append(job_name)
+            page_token = page.get("nextPageToken", "")
+            if not page_token:
+                break
+        return cancelled
+
     # deploy / invoke                   -> Lab 3 (Vertex Endpoint)
     # emit_metric                       -> Lab 4 (Cloud Monitoring time series)
     # generate                          -> Lab 5 (managed LLM endpoint; read usageMetadata for tokens)
-    # teardown                          -> Lab 5 (filter resources by label)

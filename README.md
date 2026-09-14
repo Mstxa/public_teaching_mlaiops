@@ -106,6 +106,12 @@ Under time pressure, I would drop strict seed control first. The hashed lock fil
 
 The final configuration uses 150 estimators, maximum depth 6, and minimum samples per leaf 5. It was selected by the highest validation ROC AUC across five tracked runs; the test set was not used for model selection. Raw data is versioned with DVC in GCS, and the linux/amd64 image is stored in Google Artifact Registry. The reproduction command requires no cloud credentials.
 
+### Lab 2 registry promotion
+
+The selected trial and <=200-word comparison are in `reports/lab2-comparison.md`. Run `make register`, then `make reload-check VERSION=<returned version>` to fetch the model by its Vertex registry version and score five held-out rows. Only after that check succeeds, run `make promote-staging VERSION=<same version>`. The registry version description contains the eight exact lineage fields; the model artifact and a JSON sidecar are stored in GCS. The registered container is the digest-pinned training image, which preserves the software environment for Lab 2 verification; a serving container is needed before online deployment in Lab 3.
+
+In a real organisation, an ML platform release owner should control the staging alias. They should require the 12-trial comparison, validation and held-out test metrics, seed variance, actual cloud cost, complete code/data/job/image lineage, a successful registry reload check, and a review of data drift and failure risks before promotion. The computed trial costs are estimates until reconciled with Cloud Billing.
+
 ---
 
 ## Checklist before you submit

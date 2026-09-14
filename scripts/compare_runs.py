@@ -40,18 +40,16 @@ def main() -> int:
 
     metric_col = f"metrics.{args.metric}"
     cost_col = "metrics.cost_thb"
-    baseline = runs[metric_col].min()
-
     table = pd.DataFrame({
         "run_id": runs["run_id"].str[:8],
         args.metric: runs[metric_col].round(4),
-        "cost_thb": runs.get(cost_col, 0).round(4),
+        "est_cost_thb": runs[cost_col].round(4),
         "n_estimators": runs.get("params.n_estimators"),
         "max_depth": runs.get("params.max_depth"),
         "min_samples_leaf": runs.get("params.min_samples_leaf"),
     })
-    gain = (table[args.metric] - baseline).clip(lower=1e-9)
-    table["thb_per_point"] = (table["cost_thb"] / (gain * 100)).round(4)
+    gain = (table[args.metric] - table[args.metric].min()) * 100
+    table["thb_per_point"] = (table["est_cost_thb"] / gain.where(gain > 0)).round(4)
     table = table.sort_values(args.metric, ascending=False)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -59,25 +57,24 @@ def main() -> int:
         "# Lab 2 — Run comparison",
         "",
         f"Experiment `{args.experiment}` · {len(table)} trials · "
-        f"total spend {table['cost_thb'].sum():.4f} THB",
+        f"estimated compute cost {table['est_cost_thb'].sum():.4f} THB",
+        "",
+        "Cost uses a conservative planning rate, not the final Cloud Billing amount.",
         "",
         "`thb_per_point` is cost per percentage point of "
         f"{args.metric} above the worst trial. Cheap improvements rank low; expensive "
-        "improvements rank high, however good the headline number is.",
+        "improvements rank high, however good the headline number is. "
+        "The worst trial has no improvement, so its value is undefined.",
         "",
         table.to_markdown(index=False),
         "",
-        "## Which model did you register, and why?",
+        "## Selection and justification",
         "",
-        "TODO(Lab 2): 200 words maximum. Must address all four:",
-        "",
-        "1. Why this model rather than the highest-scoring one, if they differ",
-        "2. The variance across seeds for your chosen configuration",
-        "3. What it costs to train, and to retrain monthly",
-        "4. One way this choice could be wrong",
-        "",
-        "An answer that only says \"highest validation score\" scores zero on this task.",
     ]
+    if args.out.exists() and "## Selection and justification\n" in args.out.read_text():
+        lines.append(args.out.read_text().split("## Selection and justification\n", 1)[1].strip())
+    else:
+        lines.append("TODO(Lab 2): justify the selected model in 200 words or fewer.")
     args.out.write_text("\n".join(lines))
     print(f"wrote {args.out}  ({len(table)} trials)")
     print(table.head(5).to_string(index=False))

@@ -8,7 +8,7 @@ PLATFORM ?= linux/amd64
 SEED ?= 20260101
 
 .PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
-        train-remote tune compare reload-check serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate
+        train-remote tune compare register reload-check promote-staging cost-report serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate
 
 help:
 	@grep -E "^[a-zA-Z_-]+:.*?## .*$$" $(MAKEFILE_LIST) | awk -F":.*?## " "{printf \"  %-20s %s\\n\", \$$1, \$$2}"
@@ -59,9 +59,9 @@ reproduce: data image ## THE ONE COMMAND. Grader runs this.
 verify: ## Check the produced metric against the README claim
 	python scripts/verify_metric.py
 
-teardown: ## Delete every resource tagged course=itcs355 for this lab
+teardown: ## Cancel any still-active Lab 2 Vertex training jobs
 	python -c "from src import config; from cloudlayer.factory import get_adapter; \
-	cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(1)))"
+	cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(2)))"
 
 clean: ## Remove local artifacts
 	rm -rf mlruns mlartifacts mlflow.db reports/metrics.json .pytest_cache
@@ -76,8 +76,17 @@ tune: ## Budgeted Vertex Spot hyperparameter study (>=12 trials); pass IMAGE_URI
 compare: ## Rank runs by metric and by cost per point
 	python scripts/compare_runs.py --experiment itcs355-lab2
 
+register: ## Register selected trial 01 with lineage in Vertex Model Registry
+	python -m scripts.register_lab2 --trial 1
+
 reload-check: ## Load the registered model by version and score rows
-	python scripts/reload_check.py --name $(MODEL_REGISTRY_NAME) --version $(VERSION)
+	python scripts/reload_check.py --version $(VERSION)
+
+promote-staging: ## Promote the checked model version to the staging alias
+	python -m scripts.promote_lab2 --version $(VERSION)
+
+cost-report: ## Reconcile trial estimates with Cloud Billing; pass ACTUAL_THB
+	python -m scripts.lab2_cost_report --actual-thb $(ACTUAL_THB)
 
 # --- Lab 3 -------------------------------------------------------------------
 serve: ## Run the inference service locally on :8080
