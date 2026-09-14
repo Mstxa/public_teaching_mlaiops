@@ -18,9 +18,13 @@ from __future__ import annotations
 
 import re
 import subprocess
+import time
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 from google.cloud import storage
 
 from cloudlayer.base import CloudAdapter
@@ -34,6 +38,15 @@ def _parse_gs_uri(uri: str) -> tuple[str, str]:
 
 
 class GcpAdapter(CloudAdapter):
+    def _vertex_session(self) -> AuthorizedSession:
+        credentials, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        return AuthorizedSession(credentials)
+
+    def _vertex_url(self, resource: str) -> str:
+        return f"https://{self.cfg.region}-aiplatform.googleapis.com/v1/{resource}"
+
     def upload(self, local_path: str, key: str) -> str:
         bucket_name, prefix = _parse_gs_uri(self.cfg.blob_uri)
         object_name = "/".join(
@@ -92,7 +105,84 @@ class GcpAdapter(CloudAdapter):
         repository = remote_tag.rsplit(":", 1)[0]
         return f"{repository}@{match.group(1)}"
 
-    # submit_training / register_model  -> Lab 2 (Vertex custom training + Model Registry)
+    def submit_training(self, image_uri: str, args: dict[str, Any]) -> str:
+        """Start one Vertex custom job and return its full resource name."""
+        if not re.fullmatch(r".+@sha256:[0-9a-f]{64}", image_uri):
+            raise ValueError("Training image must be pinned by sha256 digest")
+        required = ("data_uri", "output_prefix", "git_commit", "data_version")
+        missing = [key for key in required if not args.get(key)]
+        if missing:
+            raise ValueError(f"Missing training arguments: {', '.join(missing)}")
+
+        command_args = [
+            "--data-uri", str(args["data_uri"]),
+            "--output-prefix", str(args["output_prefix"]),
+            "--git-commit", str(args["git_commit"]),
+            "--data-version", str(args["data_version"]),
+        ]
+        for key in ("n_estimators", "max_depth", "min_samples_leaf", "seed"):
+            if key in args:
+                command_args.extend(("--" + key.replace("_", "-"), str(args[key])))
+
+        env = {
+            "CLOUD_PROVIDER": self.cfg.provider,
+            "PROJECT_ID": self.cfg.project_id,
+            "REGION": self.cfg.region,
+            "BLOB_URI": self.cfg.blob_uri,
+            "CONTAINER_REGISTRY": self.cfg.container_registry,
+            "MLFLOW_TRACKING_URI": self.cfg.mlflow_tracking_uri,
+            "MODEL_REGISTRY_NAME": self.cfg.model_registry_name,
+            "IDENTITY_REF": self.cfg.identity_ref,
+        }
+        job_spec: dict[str, Any] = {
+            "workerPoolSpecs": [{
+                "machineSpec": {"machineType": args.get("machine_type", "e2-standard-4")},
+                "replicaCount": 1,
+                "containerSpec": {
+                    "imageUri": image_uri,
+                    "command": ["python", "-m", "scripts.remote_train"],
+                    "args": command_args,
+                    "env": [{"name": key, "value": value} for key, value in env.items()],
+                },
+            }],
+            "serviceAccount": self.cfg.identity_ref,
+            "scheduling": {"timeout": "1800s"},
+        }
+        if args.get("spot"):
+            job_spec["scheduling"]["strategy"] = "SPOT"
+
+        job = {
+            "displayName": str(args.get("display_name", "itcs355-lab2-smoke")),
+            "labels": self.cfg.tags(2),
+            "jobSpec": job_spec,
+        }
+        parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+        response = self._vertex_session().post(
+            self._vertex_url(f"{parent}/customJobs"), json=job, timeout=60
+        )
+        response.raise_for_status()
+        return response.json()["name"]
+
+    def wait_training(self, job_id: str) -> dict[str, Any]:
+        """Poll a custom job until it finishes or the local wait limit expires."""
+        parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}/customJobs/"
+        if not job_id.startswith(parent):
+            raise ValueError("Job ID does not belong to the configured project and region")
+        terminal = {"JOB_STATE_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED", "JOB_STATE_EXPIRED"}
+        deadline = time.monotonic() + 1900
+        session = self._vertex_session()
+        while time.monotonic() < deadline:
+            response = session.get(self._vertex_url(job_id), timeout=60)
+            response.raise_for_status()
+            job = response.json()
+            state = job.get("state", "JOB_STATE_UNSPECIFIED")
+            print(f"{job_id}: {state}", flush=True)
+            if state in terminal:
+                return job
+            time.sleep(20)
+        raise TimeoutError(f"Timed out waiting for {job_id}; the cloud job may still be running")
+
+    # register_model                  -> Lab 2 (Vertex Model Registry)
     # deploy / invoke                   -> Lab 3 (Vertex Endpoint)
     # emit_metric                       -> Lab 4 (Cloud Monitoring time series)
     # generate                          -> Lab 5 (managed LLM endpoint; read usageMetadata for tokens)

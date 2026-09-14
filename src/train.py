@@ -15,6 +15,7 @@ import os
 import subprocess
 from pathlib import Path
 
+import joblib
 import mlflow
 import mlflow.sklearn
 import yaml
@@ -38,6 +39,9 @@ def git_commit() -> str:
         return "unknown"
 
 def dvc_data_hash() -> str:
+    injected = os.environ.get("DVC_DATA_HASH")
+    if injected:
+        return injected
     dvc_file = config.REPO_ROOT / "data" / "raw.dvc"
     try:
         content = yaml.safe_load(dvc_file.read_text())
@@ -55,6 +59,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--run-name", default=None)
     p.add_argument("--metrics-out", type=Path, default=None,
                    help="Write final metrics as JSON. Used by `make verify`.")
+    p.add_argument("--model-out", type=Path, default=None)
     return p.parse_args()
 
 
@@ -83,7 +88,7 @@ def main() -> None:
             "git_commit": git_commit(),
             "data_fingerprint": fingerprint,
             "dvc_data_hash": dvc_data_hash(),
-	    "split_strategy": "group_by_machine_id",
+            "split_strategy": "group_by_machine_id",
             "n_train_rows": len(train_df),
             "n_val_rows": len(val_df),
             "n_test_rows": len(test_df),
@@ -107,6 +112,9 @@ def main() -> None:
             metrics[f"{name}_pr_auc"] = float(average_precision_score(part[data.TARGET], proba))
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(model, name="model")
+        if args.model_out:
+            args.model_out.parent.mkdir(parents=True, exist_ok=True)
+            joblib.dump(model, args.model_out)
 
         print(json.dumps({"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
         if args.metrics_out:

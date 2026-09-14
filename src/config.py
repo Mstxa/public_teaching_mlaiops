@@ -80,4 +80,5 @@ def load(strict: bool = True) -> Config:
         mlflow_tracking_uri=get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"),
         model_registry_name=get("MODEL_REGISTRY_NAME", "itcs355"),
         identity_ref=get("IDENTITY_REF", ""),
+        data_dir=Path(get("DATA_DIR") or REPO_ROOT / "data"),
     )
