@@ -110,6 +110,8 @@ The final configuration uses 150 estimators, maximum depth 6, and minimum sample
 
 The selected trial and <=200-word comparison are in `reports/lab2-comparison.md`. Run `make register`, then `make reload-check VERSION=<returned version>` to fetch the model by its Vertex registry version and score five held-out rows. Only after that check succeeds, run `make promote-staging VERSION=<same version>`. The registry version description contains the eight exact lineage fields; the model artifact and a JSON sidecar are stored in GCS. The registered container is the digest-pinned training image, which preserves the software environment for Lab 2 verification; a serving container is needed before online deployment in Lab 3.
 
+The laptop sleep and study recovery are documented in `reports/lab2-resume.md`, with terminal screenshots. This is evidence of recovery from a local connection loss, not a confirmed Spot preemption.
+
 In a real organisation, an ML platform release owner should control the staging alias. They should require the 12-trial comparison, validation and held-out test metrics, seed variance, actual cloud cost, complete code/data/job/image lineage, a successful registry reload check, and a review of data drift and failure risks before promotion. The computed trial costs are estimates until reconciled with Cloud Billing.
 
 Run `make cost-report` to record the per-trial estimate while Billing data is pending. Once the Lab 2 usage appears in Cloud Billing, rerun with `make cost-report ACTUAL_THB=<observed usage cost>` and commit the updated report. A zero in a report that has not yet reached the run date is not an observed cost.
