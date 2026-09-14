@@ -70,8 +70,8 @@ clean: ## Remove local artifacts
 train-remote: ## Run one Vertex AI training smoke job; pass IMAGE_URI=repo@sha256:...
 	python -m scripts.submit_remote --image-uri "$(IMAGE_URI)"
 
-tune: ## Budgeted hyperparameter study (>=12 trials)
-	python -m src.tune --trials 12 --budget-thb 150
+tune: ## Budgeted Vertex Spot hyperparameter study (>=12 trials); pass IMAGE_URI
+	python -m scripts.remote_study --image-uri "$(IMAGE_URI)" --trials 12 --budget-thb 150
 
 compare: ## Rank runs by metric and by cost per point
 	python scripts/compare_runs.py --experiment itcs355-lab2

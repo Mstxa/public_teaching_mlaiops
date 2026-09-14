@@ -24,6 +24,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import google.auth
+from google.api_core.exceptions import NotFound
 from google.auth.transport.requests import AuthorizedSession
 from google.cloud import storage
 
@@ -66,7 +67,10 @@ class GcpAdapter(CloudAdapter):
 
         client = storage.Client(project=self.cfg.project_id)
         blob = client.bucket(bucket_name).blob(object_name)
-        blob.download_to_filename(destination)
+        try:
+            blob.download_to_filename(destination)
+        except NotFound as exc:
+            raise FileNotFoundError(uri) from exc
 
     def push_image(self, local_tag: str) -> str:
         registry = self.cfg.container_registry.rstrip("/")
@@ -146,7 +150,7 @@ class GcpAdapter(CloudAdapter):
                 },
             }],
             "serviceAccount": self.cfg.identity_ref,
-            "scheduling": {"timeout": "1800s"},
+            "scheduling": {"timeout": f"{int(args.get('timeout_s', 1800))}s"},
         }
         if args.get("spot"):
             job_spec["scheduling"]["strategy"] = "SPOT"
@@ -165,18 +169,22 @@ class GcpAdapter(CloudAdapter):
 
     def wait_training(self, job_id: str) -> dict[str, Any]:
         """Poll a custom job until it finishes or the local wait limit expires."""
-        parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}/customJobs/"
-        if not job_id.startswith(parent):
-            raise ValueError("Job ID does not belong to the configured project and region")
+        # Vertex may return the project number even when creation used its string ID.
+        pattern = rf"projects/[^/]+/locations/{re.escape(self.cfg.region)}/customJobs/[0-9]+"
+        if not re.fullmatch(pattern, job_id):
+            raise ValueError("Job ID is not a Vertex custom job in the configured region")
         terminal = {"JOB_STATE_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED", "JOB_STATE_EXPIRED"}
         deadline = time.monotonic() + 1900
         session = self._vertex_session()
+        previous_state = None
         while time.monotonic() < deadline:
             response = session.get(self._vertex_url(job_id), timeout=60)
             response.raise_for_status()
             job = response.json()
             state = job.get("state", "JOB_STATE_UNSPECIFIED")
-            print(f"{job_id}: {state}", flush=True)
+            if state != previous_state:
+                print(f"{job_id}: {state}", flush=True)
+                previous_state = state
             if state in terminal:
                 return job
             time.sleep(20)
