@@ -1,0 +1,16 @@
+{
+  "observed_on": "2026-09-15",
+  "scope": "project itcs355-6688121, charge period September 1-14, 2026; all services; Savings (None)",
+  "usage_cost_thb": 4.48,
+  "net_after_credits_thb": 0.0,
+  "services_thb": {
+    "Compute Engine": 4.06,
+    "Vertex AI": 0.42,
+    "Cloud Storage": 0.0,
+    "Artifact Registry": 0.0
+  },
+  "evidence_paths": {
+    "project summary": "evidence/lab2-billing-project-summary.png",
+    "service table": "evidence/lab2-billing-usage-cost.png"
+  }
+}

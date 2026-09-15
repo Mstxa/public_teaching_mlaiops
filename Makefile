@@ -85,7 +85,7 @@ reload-check: ## Load the registered model by version and score rows
 promote-staging: ## Promote the checked model version to the staging alias
 	python -m scripts.promote_lab2 --version $(VERSION)
 
-cost-report: ## Record estimate now; later pass ACTUAL_THB from Cloud Billing
+cost-report: ## Generate estimate and saved Cloud Billing observation
 	python -m scripts.lab2_cost_report $(if $(ACTUAL_THB),--actual-thb $(ACTUAL_THB))
 
 # --- Lab 3 -------------------------------------------------------------------

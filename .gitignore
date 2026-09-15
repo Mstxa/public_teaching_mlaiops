@@ -12,6 +12,7 @@ mlartifacts/
 mlflow.db
 
 reports/*.json
+!reports/lab2-billing-observation.json
 reports/*.joblib
 __pycache__/
 *.pyc

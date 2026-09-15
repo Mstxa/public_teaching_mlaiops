@@ -2,12 +2,16 @@
 
 Completed Spot trials: 12; failed attempts: 0.
 Estimated Vertex training compute: 2.4233 THB.
-Cloud Billing observed amount: pending.
-Difference: pending.
-Billing status: usage for the Lab 2 run date has not appeared yet; do not treat an incomplete report as zero cost.
-Billing scope: project, Lab 2 usage period.
+Cloud Billing observed project usage cost before credits: 4.4800 THB.
+Net billed after Free Trial credits: 0.0000 THB.
+The observed project usage cost to date is below the 150 THB Lab 2 budget.
+Billing report checked on: 2026-09-15.
+Billing scope: project itcs355-6688121, charge period September 1-14, 2026; all services; Savings (None).
+Service usage costs: Compute Engine 4.06 THB; Vertex AI 0.42 THB; Cloud Storage 0.00 THB; Artifact Registry 0.00 THB.
+Billing evidence: [project summary](evidence/lab2-billing-project-summary.png), [service table](evidence/lab2-billing-usage-cost.png).
+Comparison: the estimate covers only the 12 training trials, while the Billing observation covers the full project and may include the earlier smoke job and other services.
 
-The estimate uses a planning rate of 12 THB/hour and excludes the earlier smoke job, storage, registry, logs, network, and taxes. The Cloud Billing amount may include those charges; compare scopes before interpreting the difference.
+The estimate uses a planning rate of 12 THB/hour and excludes the earlier smoke job, storage, registry, logs, network, and taxes. The Cloud Billing amount may include those charges. Do not treat the difference between these scopes as an exact trial cost error.
 
 | Trial | Job | Duration (s) | Estimated THB |
 |---:|---|---:|---:|

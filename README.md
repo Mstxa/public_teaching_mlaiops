@@ -114,7 +114,7 @@ The laptop sleep and study recovery are documented in `reports/lab2-resume.md`, 
 
 In a real organisation, an ML platform release owner should control the staging alias. They should require the 12-trial comparison, validation and held-out test metrics, seed variance, actual cloud cost, complete code/data/job/image lineage, a successful registry reload check, and a review of data drift and failure risks before promotion. The computed trial costs are estimates until reconciled with Cloud Billing.
 
-Run `make cost-report` to record the per-trial estimate while Billing data is pending. Once the Lab 2 usage appears in Cloud Billing, rerun with `make cost-report ACTUAL_THB=<observed usage cost>` and commit the updated report. A zero in a report that has not yet reached the run date is not an observed cost.
+Run `make cost-report` to generate `reports/lab2-cost.md` from the trial checkpoint and the saved Billing observation. The observed project usage cost through September 14 was 4.48 THB before Free Trial credits, and the net billed amount was 0.00 THB. This project total includes services outside the 12 trial estimate; see the report and Billing screenshots for the scope. If Billing adds later charges, update `reports/lab2-billing-observation.json`, rerun `make cost-report`, and commit the updated report.
 
 ---
 
