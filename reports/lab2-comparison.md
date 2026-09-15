@@ -4,7 +4,7 @@ Experiment `itcs355-lab2` · 12 trials · estimated compute cost 2.4233 THB
 
 Cost uses a conservative planning rate, not the final Cloud Billing amount.
 
-`thb_per_point` is cost per percentage point of val_roc_auc above the worst trial. Cheap improvements rank low; expensive improvements rank high, however good the headline number is. The worst trial has no improvement, so its value is undefined.
+`thb_per_point` is cost per percentage point of val_roc_auc above the worst trial. Cheap improvements rank low; expensive improvements rank high, however good the headline number is. The worst trial has no improvement, so its value is N/A.
 
 | run_id   |   val_roc_auc |   est_cost_thb |   n_estimators |   max_depth |   min_samples_leaf |   thb_per_point |
 |:---------|--------------:|---------------:|---------------:|------------:|-------------------:|----------------:|
@@ -19,7 +19,7 @@ Cost uses a conservative planning rate, not the final Cloud Billing amount.
 | 01956c2d |        0.8322 |         0.2033 |            100 |          12 |                  5 |          0.3567 |
 | 4b79f623 |        0.8312 |         0.2033 |            100 |           8 |                  1 |          0.4326 |
 | 2e52496e |        0.8268 |         0.2033 |            100 |          12 |                  1 |          6.7767 |
-| 3e8c46b6 |        0.8265 |         0.2033 |            300 |          12 |                  1 |        nan      |
+| 3e8c46b6 |        0.8265 |         0.2033 |            300 |          12 |                  1 |        N/A      |
 
 ## Selection and justification
 

@@ -52,6 +52,10 @@ def main() -> int:
     gain = (table[args.metric] - table[args.metric].min()) * 100
     table["thb_per_point"] = (table["est_cost_thb"] / gain.where(gain > 0)).round(4)
     table = table.sort_values(args.metric, ascending=False)
+    display_table = table.copy()
+    display_table["thb_per_point"] = display_table["thb_per_point"].astype(object).where(
+        display_table["thb_per_point"].notna(), "N/A"
+    )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -65,9 +69,9 @@ def main() -> int:
         "`thb_per_point` is cost per percentage point of "
         f"{args.metric} above the worst trial. Cheap improvements rank low; expensive "
         "improvements rank high, however good the headline number is. "
-        "The worst trial has no improvement, so its value is undefined.",
+        "The worst trial has no improvement, so its value is N/A.",
         "",
-        table.to_markdown(index=False),
+        display_table.to_markdown(index=False),
         "",
         "## Selection and justification",
         "",
