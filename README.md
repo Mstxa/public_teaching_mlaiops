@@ -112,6 +112,8 @@ The selected trial and <=200-word comparison are in `reports/lab2-comparison.md`
 
 The laptop sleep and study recovery are documented in `reports/lab2-resume.md`, with terminal screenshots. This is evidence of recovery from a local connection loss, not a confirmed Spot preemption.
 
+The managed job, model registration, registry reload check, staging retry, and teardown outputs are documented in `reports/lab2-operations.md`.
+
 In a real organisation, an ML platform release owner should control the staging alias. They should require the 12-trial comparison, validation and held-out test metrics, seed variance, actual cloud cost, complete code/data/job/image lineage, a successful registry reload check, and a review of data drift and failure risks before promotion. The computed trial costs are estimates until reconciled with Cloud Billing.
 
 Run `make cost-report` to generate `reports/lab2-cost.md` from the trial checkpoint and the saved Billing observation. The observed project usage cost through September 14 was 4.48 THB before Free Trial credits, and the net billed amount was 0.00 THB. This project total includes services outside the 12 trial estimate; see the report and Billing screenshots for the scope. If Billing adds later charges, update `reports/lab2-billing-observation.json`, rerun `make cost-report`, and commit the updated report.
