@@ -98,3 +98,26 @@ def test_managed_prediction_contract(client):
     assert len(predictions) == 2
     assert all(0.0 <= item["probability"] <= 1.0 for item in predictions)
     assert all(item["model_version"] == "test-1" for item in predictions)
+
+
+def test_managed_prediction_delay_hook(client, monkeypatch):
+    from time import sleep as real_sleep
+
+    observed = []
+
+    def capture_delay(seconds):
+        if seconds == 0.7:
+            observed.append(seconds)
+        else:
+            real_sleep(seconds)
+
+    monkeypatch.setenv("PREDICT_DELAY_MS", "700")
+    monkeypatch.setattr("service.app.time.sleep", capture_delay)
+
+    response = client.post(
+        "/predict/managed",
+        json={"instances": [VALID]},
+    )
+
+    assert response.status_code == 200
+    assert observed == [0.7]

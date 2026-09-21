@@ -153,6 +153,13 @@ def predict_batch(payload: BatchRequest) -> BatchResponse:
 @app.post("/predict/managed", response_model=ManagedPredictResponse)
 def predict_managed(payload: ManagedPredictRequest) -> ManagedPredictResponse:
     """Provider-facing batch contract: instances in, predictions out."""
+    delay_ms = max(
+        0.0,
+        float(os.environ.get("PREDICT_DELAY_MS", "0")),
+    )
+    if delay_ms:
+        time.sleep(delay_ms / 1000.0)
+
     scores = _score([row.model_dump() for row in payload.instances])
     predictions = [
         ManagedPrediction(
