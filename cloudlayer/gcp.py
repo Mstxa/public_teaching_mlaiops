@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -287,8 +288,10 @@ class GcpAdapter(CloudAdapter):
 
     def teardown(self, tags: dict[str, str]) -> list[str]:
         """Cancel only active Lab 2 jobs; terminal jobs already release compute."""
+        if tags == self.cfg.tags(3):
+            return self._teardown_lab3(tags)
         if tags != self.cfg.tags(2):
-            raise ValueError("This teardown implementation is scoped to Lab 2")
+            raise ValueError("This teardown implementation is scoped to Lab 2 or Lab 3")
         parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
         session = self._vertex_session()
         label_filter = " AND ".join(f"labels.{key}={value}" for key, value in tags.items())
@@ -316,6 +319,305 @@ class GcpAdapter(CloudAdapter):
             if not page_token:
                 break
         return cancelled
+
+    def _gcloud_json(
+        self,
+        args: list[str],
+        *,
+        input_text: str | None = None,
+        check: bool = True,
+    ) -> Any:
+        command = [
+            "gcloud",
+            *args,
+            f"--project={self.cfg.project_id}",
+            "--quiet",
+            "--format=json",
+        ]
+        result = subprocess.run(
+            command,
+            input=input_text,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            if not check:
+                return None
+            detail = result.stderr.strip() or result.stdout.strip()
+            raise RuntimeError(
+                f"gcloud command failed ({result.returncode}): {detail}"
+            )
+
+        output = result.stdout.strip()
+        return json.loads(output) if output else {}
+
+    def deploy(
+        self,
+        model_ref: str,
+        endpoint: str,
+        instance: str,
+    ) -> dict[str, Any]:
+        if "@" not in model_ref:
+            raise ValueError("model_ref must use NAME@VERSION")
+
+        model_name, model_version = model_ref.rsplit("@", 1)
+        source_model = self.get_model_version(model_name, model_version)
+        artifact_uri = source_model.get("artifactUri")
+        if not artifact_uri:
+            raise RuntimeError(
+                f"Registered model {model_ref} has no artifactUri"
+            )
+
+        report_path = self.cfg.reports_dir / "lab3-serving-image-uri.txt"
+        image_uri = os.environ.get("SERVING_IMAGE_URI", "").strip()
+        if not image_uri and report_path.exists():
+            image_uri = report_path.read_text().strip()
+
+        if not re.fullmatch(r".+@sha256:[0-9a-f]{64}", image_uri):
+            raise RuntimeError(
+                "SERVING_IMAGE_URI must be an immutable @sha256 URI"
+            )
+
+        safe_name = re.sub(r"[^a-z0-9_-]", "-", model_name.lower())
+        safe_version = re.sub(r"[^a-z0-9_-]", "-", model_version.lower())
+        serving_model_id = f"{safe_name}-serve-v{safe_version}"
+        endpoint_id = re.sub(r"[^a-z0-9_-]", "-", endpoint.lower())
+        deployed_name = f"{serving_model_id}-deployment"
+
+        labels = ",".join(
+            f"{key}={value}" for key, value in self.cfg.tags(3).items()
+        )
+        env_vars = {
+            "CLOUD_PROVIDER": self.cfg.provider,
+            "PROJECT_ID": self.cfg.project_id,
+            "REGION": self.cfg.region,
+            "BLOB_URI": self.cfg.blob_uri,
+            "CONTAINER_REGISTRY": self.cfg.container_registry,
+            "MLFLOW_TRACKING_URI": self.cfg.mlflow_tracking_uri,
+            "MODEL_REGISTRY_NAME": model_name,
+            "MODEL_VERSION": model_version,
+            "IDENTITY_REF": self.cfg.identity_ref,
+        }
+        container_env = ",".join(
+            f"{key}={value}" for key, value in env_vars.items()
+        )
+
+        serving_model = self._gcloud_json(
+            [
+                "ai",
+                "models",
+                "describe",
+                serving_model_id,
+                f"--region={self.cfg.region}",
+            ],
+            check=False,
+        )
+        if serving_model is None:
+            self._gcloud_json(
+                [
+                    "ai",
+                    "models",
+                    "upload",
+                    f"--model-id={serving_model_id}",
+                    f"--display-name={serving_model_id}",
+                    f"--artifact-uri={artifact_uri}",
+                    f"--container-image-uri={image_uri}",
+                    "--container-ports=8080",
+                    "--container-health-route=/ready",
+                    "--container-predict-route=/predict/managed",
+                    f"--container-env-vars={container_env}",
+                    f"--labels={labels}",
+                    (
+                        "--version-description="
+                        f"Lab 3 serving model for {model_ref}; image={image_uri}"
+                    ),
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            serving_model = self._gcloud_json(
+                [
+                    "ai",
+                    "models",
+                    "describe",
+                    serving_model_id,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+
+        endpoint_state = self._gcloud_json(
+            [
+                "ai",
+                "endpoints",
+                "describe",
+                endpoint_id,
+                f"--region={self.cfg.region}",
+            ],
+            check=False,
+        )
+        if endpoint_state is None:
+            self._gcloud_json(
+                [
+                    "ai",
+                    "endpoints",
+                    "create",
+                    f"--endpoint-id={endpoint_id}",
+                    f"--display-name={endpoint_id}",
+                    f"--labels={labels}",
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            endpoint_state = self._gcloud_json(
+                [
+                    "ai",
+                    "endpoints",
+                    "describe",
+                    endpoint_id,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+
+        deployed_models = endpoint_state.get("deployedModels", [])
+        already_deployed = any(
+            item.get("displayName") == deployed_name
+            for item in deployed_models
+        )
+        if not already_deployed:
+            service_account = self.cfg.identity_ref.removeprefix(
+                "serviceAccount:"
+            )
+            self._gcloud_json(
+                [
+                    "ai",
+                    "endpoints",
+                    "deploy-model",
+                    endpoint_id,
+                    f"--model={serving_model_id}",
+                    f"--display-name={deployed_name}",
+                    f"--machine-type={instance}",
+                    "--min-replica-count=1",
+                    "--max-replica-count=1",
+                    f"--service-account={service_account}",
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            endpoint_state = self._gcloud_json(
+                [
+                    "ai",
+                    "endpoints",
+                    "describe",
+                    endpoint_id,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+
+        return {
+            "endpoint": endpoint_state["name"],
+            "model": serving_model["name"],
+            "source_model": model_ref,
+            "serving_image": image_uri,
+        }
+
+    def invoke(
+        self,
+        endpoint: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        endpoint_id = endpoint.rstrip("/").rsplit("/", 1)[-1]
+        response = self._gcloud_json(
+            [
+                "ai",
+                "endpoints",
+                "predict",
+                endpoint_id,
+                "--json-request=-",
+                f"--region={self.cfg.region}",
+            ],
+            input_text=json.dumps({"instances": [payload]}),
+        )
+        if not response.get("predictions"):
+            raise RuntimeError(
+                f"Vertex endpoint returned no predictions: {response}"
+            )
+        return response
+
+    def _teardown_lab3(self, tags: dict[str, str]) -> list[str]:
+        label_filter = " AND ".join(
+            f"labels.{key}={value}" for key, value in tags.items()
+        )
+        removed: list[str] = []
+
+        endpoints = self._gcloud_json(
+            [
+                "ai",
+                "endpoints",
+                "list",
+                f"--region={self.cfg.region}",
+                f"--filter={label_filter}",
+            ]
+        )
+        for endpoint in endpoints:
+            endpoint_name = endpoint["name"]
+            endpoint_id = endpoint_name.rsplit("/", 1)[-1]
+            details = self._gcloud_json(
+                [
+                    "ai",
+                    "endpoints",
+                    "describe",
+                    endpoint_id,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            for deployed in details.get("deployedModels", []):
+                self._gcloud_json(
+                    [
+                        "ai",
+                        "endpoints",
+                        "undeploy-model",
+                        endpoint_id,
+                        f"--deployed-model-id={deployed['id']}",
+                        f"--region={self.cfg.region}",
+                    ]
+                )
+            self._gcloud_json(
+                [
+                    "ai",
+                    "endpoints",
+                    "delete",
+                    endpoint_id,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            removed.append(endpoint_name)
+
+        models = self._gcloud_json(
+            [
+                "ai",
+                "models",
+                "list",
+                f"--region={self.cfg.region}",
+                f"--filter={label_filter}",
+            ]
+        )
+        seen: set[str] = set()
+        for model in models:
+            model_name = model["name"].split("@", 1)[0]
+            model_id = model_name.rsplit("/", 1)[-1]
+            if model_id in seen:
+                continue
+            seen.add(model_id)
+            self._gcloud_json(
+                [
+                    "ai",
+                    "models",
+                    "delete",
+                    model_id,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            removed.append(model_name)
+
+        return removed
 
     # deploy / invoke                   -> Lab 3 (Vertex Endpoint)
     # emit_metric                       -> Lab 4 (Cloud Monitoring time series)
