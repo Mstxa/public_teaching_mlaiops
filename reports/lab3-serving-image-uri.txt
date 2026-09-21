@@ -1,0 +1,1 @@
+asia-southeast1-docker.pkg.dev/itcs355-6688121/itcs355/itcs355-serve@sha256:ae5d01ee1289103ad62370ecd54fb266aee5af0928891a6630c2cbed8c867d94
