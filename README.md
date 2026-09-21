@@ -21,16 +21,28 @@ whether a stranger can reproduce it is.
 make reproduce
 ```
 
-expected test_roc_auc: 0.848 ± 0.010
+expected test_roc_auc: 0.848 ± 0.001
 
 Runtime: about 40 seconds on 4 cores. No cloud account or credentials needed for this command —
 that is deliberate, and it is why a grader can run it.
 
 **REPLACE:** re-measure and update that claim line after your final change. Keep the exact
 format `expected test_roc_auc: <value> ± <tolerance>`; `make verify` parses it, and so does the
-grading script. Choose the tolerance from the spread you actually observe across seeds. Padding it
-to hide non-determinism is visible — the grader compares your tolerance against the variance in
-your own tracked runs.
+grading script.
+
+The tolerance covers the grader's machine, not your choice of seed. `make reproduce` pins the
+seed for the dataset and the model both, so the grader runs your exact configuration; anything
+they see that differs came from the environment — a different CPU, a different BLAS, a library
+that moved under you. Measure it by running `make reproduce` twice, on two machines if you can
+get them. On this pipeline it is tiny but not zero: the same seed gives 0.8482511 on an arm64
+laptop and 0.8482379 on the amd64 CI runner — different architecture, different Python, same
+pins — a gap of 1.3e-5. So ±0.001 is roughly seventy times more room than you need, and ±0.01
+is padding.
+
+Changing the seed measures something else. It moves the *split* — which machines land in test —
+and that swings `test_roc_auc` across roughly 0.82–0.87 on this data. Write that number down in
+your run discussion, because it says how much of your headline metric is luck. It is not your
+tolerance.
 
 ---
 

@@ -29,11 +29,24 @@ buildability; dropping hashes leaves you exposed to a republished wheel; droppin
 is the fastest way to have a build stop reproducing without any commit. An answer that refuses
 to choose, or lists all three as equally important, scores zero on this item.
 
-**Is the tolerance honest?** Cross-check the stated tolerance against the spread in the
-student's own tracked runs. In the reference implementation, a fixed seed reproduces to within
-0.0005 across machines, while varying the seed moves test ROC AUC across roughly 0.82–0.87 —
-because the seed moves the split, not just the model. A student who states ±0.05 has quietly
-covered up non-determinism they did not investigate. This distinction is a good exam question.
+**Is the tolerance honest?** There are two quantities here and only one of them belongs on the
+claim line. Reference figures, all measured:
+
+| What varies | `test_roc_auc` | Spread |
+|---|---|---|
+| Nothing — same machine, repeated runs | 0.8482510866616827 | 0 |
+| Thread count (1, 4, 8) | 0.8482510866616827 | 0 |
+| Architecture, Python and resolution (arm64/3.14 → amd64/3.11) | 0.8482378548603715 | 1.3e-5 |
+| Seed, over 1–5 | 0.8229 – 0.8729 | 5.0e-2 |
+
+The last row is about four thousand times the one above it, and that gap is the whole point of
+the question. A same-seed tolerance of ±0.001 is honest and roughly seventy times more room than
+the measurement needs. A tolerance near ±0.05 is the seed spread wearing a disguise: the student
+has reported the variance of their *estimate* as if it were the variance of their *build*. ±0.1
+is not a measurement at all.
+
+A student who states a tight tolerance and can say why has understood the lab. Give them the
+marks even if the arithmetic is rough.
 
 **Are the five runs a study or noise?** Five seeds of one configuration is not a study. Look for
 at least one hyperparameter varied with intent.
@@ -62,10 +75,13 @@ leakage. Three marks total, all CLO1 — half concepts, half evidence, in the sh
 [`drills/README.md`](drills/README.md). The paper itself is in the private instructor
 repository — this one is public, and a pre-read concept question is not a concept question.
 
-Note that the drill does **not** ask "how did you choose your tolerance", even though it is the
-obvious question. The README's guidance on tolerance is wrong — it points at the spread across
-seeds while `make reproduce` pins the seed — so the question would penalise students for
-following the handout. Fix the guidance, then ask it.
+"How did you choose your tolerance, and what would change it?" is now a fair question and a
+good one. It was not always: the README used to tell students to take the tolerance from the
+spread across seeds, while `make reproduce` pins the seed, so asking it would have penalised
+the students who followed the handout most carefully. The guidance was corrected before this
+cohort, in `README.md`, the Lab 1 handout, and the GCP setup guide. A student who still answers
+"the variance across my five seeds" is reading a stale copy — worth knowing, and worth saying
+in the debrief rather than in the mark.
 
 ## Time budget
 

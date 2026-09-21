@@ -142,6 +142,13 @@ Docker and nothing else from your setup.
 It must state: what the problem is, what the data is and where it comes from, the one command, the
 expected metric and tolerance, and roughly how long it takes.
 
+Pick the tolerance deliberately. `make reproduce` pins the seed, so the grader is running your
+configuration, not a resample of it — the tolerance covers what the *environment* changes, and
+you measure it by running the command more than once, ideally somewhere else. The spread you get
+by *varying* the seed is a different quantity: it tells you how much of your metric came from
+which machines landed in the test split. Both are worth reporting. Only the first one belongs on
+the claim line.
+
 ```bash
 make reproduce       # the one command
 ```

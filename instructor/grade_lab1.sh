@@ -67,5 +67,5 @@ echo
 echo "mechanical: $PASS passed, $FAIL failed"
 echo "still to judge by hand:"
 echo "  - the reproducibility trade-off answer (is a real choice made and defended?)"
-echo "  - is the stated tolerance honest against the variance in their own runs?"
+echo "  - is the tolerance a same-seed figure (~0.001), or the seed spread (~0.05) in disguise?"
 echo "  - are the five runs a real study, or five seeds of the same configuration?"
