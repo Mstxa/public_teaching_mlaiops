@@ -111,7 +111,7 @@ def main() -> None:
             metrics[f"{name}_roc_auc"] = float(roc_auc_score(part[data.TARGET], proba))
             metrics[f"{name}_pr_auc"] = float(average_precision_score(part[data.TARGET], proba))
         mlflow.log_metrics(metrics)
-        mlflow.sklearn.log_model(model, name="model")
+        mlflow.sklearn.log_model(model, name="model", skops_trusted_types=["sklearn.tree._tree.Tree"])
         if args.model_out:
             args.model_out.parent.mkdir(parents=True, exist_ok=True)
             joblib.dump(model, args.model_out)
