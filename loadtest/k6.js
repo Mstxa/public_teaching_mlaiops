@@ -18,9 +18,9 @@ export const options = {
   vus: Number(__ENV.VUS || 10),
   duration: __ENV.DURATION || '60s',
   thresholds: {
-    // TODO(Lab 3): set YOUR p95 target here, BEFORE you measure.
+    // Target set before measurement: p95 < 500 ms at 10 VUs; error rate < 1%.
     // A target chosen after seeing the numbers is not a target, and this is graded.
-    'predict_latency_ms': ['p(95)<200'],
+    'predict_latency_ms': ['p(95)<500'],
     'predict_failures': ['rate<0.01'],
   },
 };
