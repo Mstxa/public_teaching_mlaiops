@@ -47,6 +47,10 @@ class CloudAdapter(ABC):
     def register_model(self, model_uri: str, name: str) -> str:
         raise NotImplementedError("Lab 2")
 
+    def get_model_version(self, name: str, version: str) -> dict[str, Any]:
+        """Return one explicit registered model version and its artifact metadata."""
+        raise NotImplementedError("Lab 2")
+
     # --- Lab 3 ---------------------------------------------------------------
     def deploy(self, model_ref: str, endpoint: str, instance: str) -> str:
         raise NotImplementedError("Lab 3")

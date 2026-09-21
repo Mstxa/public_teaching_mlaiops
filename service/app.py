@@ -38,10 +38,24 @@ def _load_model():
     name = os.environ.get("MODEL_REGISTRY_NAME")
     version = os.environ.get("MODEL_VERSION")
     if name and version:
-        import mlflow.sklearn  # imported lazily so tests can run without a registry
+        import joblib
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
 
-        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
-        return mlflow.sklearn.load_model(f"models:/{name}/{version}")
+        from cloudlayer.factory import get_adapter
+        from src import config
+
+        cfg = config.load()
+        adapter = get_adapter(cfg)
+        registered = adapter.get_model_version(name, version)
+        artifact_uri = str(registered.get("artifactUri", "")).rstrip("/")
+        if not artifact_uri:
+            raise RuntimeError(f"Registry model {name}@{version} has no artifact URI")
+
+        with TemporaryDirectory(prefix="itcs355-serve-") as directory:
+            model_path = Path(directory) / "model.joblib"
+            adapter.download(f"{artifact_uri}/model.joblib", str(model_path))
+            return joblib.load(model_path)
 
     # Fallback for local development and tests only. Submitting this is not acceptable:
     # your deployed service must load a registered version.
