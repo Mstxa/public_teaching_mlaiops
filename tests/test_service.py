@@ -87,3 +87,14 @@ def test_batch_matches_singles(client):
 def test_batch_size_limit_enforced(client):
     r = client.post("/predict/batch", json={"rows": [VALID] * 101})
     assert r.status_code == 422
+
+
+def test_managed_prediction_contract(client):
+    rows = [VALID, {**VALID, "temp_c": 92.0}]
+    response = client.post("/predict/managed", json={"instances": rows})
+
+    assert response.status_code == 200
+    predictions = response.json()["predictions"]
+    assert len(predictions) == 2
+    assert all(0.0 <= item["probability"] <= 1.0 for item in predictions)
+    assert all(item["model_version"] == "test-1" for item in predictions)

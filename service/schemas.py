@@ -34,3 +34,16 @@ class BatchRequest(BaseModel):
 class BatchResponse(BaseModel):
     probabilities: list[float]
     model_version: str
+
+class ManagedPredictRequest(BaseModel):
+    instances: list[PredictRequest] = Field(..., min_length=1, max_length=100)
+
+
+class ManagedPrediction(BaseModel):
+    probability: float
+    model_version: str
+
+
+class ManagedPredictResponse(BaseModel):
+    predictions: list[ManagedPrediction]
+

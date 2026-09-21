@@ -18,7 +18,15 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from service.schemas import BatchRequest, BatchResponse, PredictRequest, PredictResponse
+from service.schemas import (
+    BatchRequest,
+    BatchResponse,
+    ManagedPrediction,
+    ManagedPredictRequest,
+    ManagedPredictResponse,
+    PredictRequest,
+    PredictResponse,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -141,3 +149,17 @@ def predict(payload: PredictRequest) -> PredictResponse:
 def predict_batch(payload: BatchRequest) -> BatchResponse:
     scores = _score([row.model_dump() for row in payload.rows])
     return BatchResponse(probabilities=scores, model_version=str(STATE["version"]))
+
+@app.post("/predict/managed", response_model=ManagedPredictResponse)
+def predict_managed(payload: ManagedPredictRequest) -> ManagedPredictResponse:
+    """Provider-facing batch contract: instances in, predictions out."""
+    scores = _score([row.model_dump() for row in payload.instances])
+    predictions = [
+        ManagedPrediction(
+            probability=score,
+            model_version=str(STATE["version"]),
+        )
+        for score in scores
+    ]
+    return ManagedPredictResponse(predictions=predictions)
+
