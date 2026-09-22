@@ -6,6 +6,7 @@ IMAGE ?= itcs355-lab1
 TAG   ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 PLATFORM ?= linux/amd64
 SEED ?= 20260101
+LAB ?= 3
 
 .PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
         train-remote tune compare register reload-check promote-staging cost-report serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate \
@@ -65,7 +66,7 @@ scan-secrets: ## Scan Git history for credential-shaped values
 
 teardown: ## Delete every resource tagged course=itcs355 for this lab
 	python -c "from src import config; from cloudlayer.factory import get_adapter; \
-	cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(2)))"
+	cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags($(LAB))))"
 
 clean: ## Remove local artifacts
 	rm -rf mlruns mlartifacts mlflow.db reports/metrics.json .pytest_cache
