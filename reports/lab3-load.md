@@ -213,3 +213,23 @@ The command outputs are committed in
 `reports/lab3-make-teardown.txt`,
 `reports/lab3-teardown-verify.txt`, and
 `reports/lab3-teardown-cloud-confirmation.txt`.
+
+## Required Make command evidence
+
+The required operational commands were executed after their Make
+targets had been committed.
+
+- `make deploy` recreated the Vertex AI endpoint from registered model
+  `itcs355-6688121@1` on `n1-standard-2`. The immutable image and
+  deployment response are recorded in `reports/lab3-make-deploy.txt`.
+- `make smoke` invoked three known payloads. All three returned one
+  prediction containing `probability` and `model_version=1`. The
+  committed result records `payload_count=3` and `all_passed=true` in
+  `reports/lab3-make-smoke.txt`.
+- `make cost-report` generated `reports/lab3-cost.md` from the measured
+  throughput, hourly rates, and explicit 100% utilisation assumption.
+- `make teardown` removed the recreated endpoint and serving model.
+  Its second run returned `[]`, and
+  `python scripts/teardown_verify.py --lab 3` returned `PASS`. The
+  final evidence is in `reports/lab3-final-make-teardown.txt` and
+  `reports/lab3-final-teardown-verify.txt`.
