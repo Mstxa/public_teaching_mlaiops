@@ -96,7 +96,7 @@ cost-report: ## Generate estimate and saved Cloud Billing observation
 # --- Lab 3 -------------------------------------------------------------------
 serve: ## Run the inference service locally on :8080
 	python scripts/export_model.py --out reports/model.joblib
-	MODEL_PATH=reports/model.joblib MODEL_VERSION=local uvicorn service.app:app --port 8080
+	MODEL_REGISTRY_NAME= MODEL_PATH=reports/model.joblib MODEL_VERSION=local uvicorn service.app:app --port 8080
 
 serve-image: ## Build the serving image
 	docker buildx build --platform $(PLATFORM) -f service/Dockerfile.serve -t itcs355-serve:$(TAG) --load .
