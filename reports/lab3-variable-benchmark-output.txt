@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-09-22T12:40:10.768610+00:00",
+  "base_url": "http://127.0.0.1:8080",
+  "repeats": 20,
+  "batch_experiment": {
+    "single_100_calls": {
+      "median_ms": 8407.747076002124,
+      "p95_ms": 8834.392996999668,
+      "min_ms": 8054.009352999856,
+      "max_ms": 8882.463090001693,
+      "predictions_per_second": 11.842571694483166,
+      "request_bytes_each": 124
+    },
+    "batch_100_rows": {
+      "median_ms": 91.72673500142992,
+      "p95_ms": 103.1358439977339,
+      "min_ms": 70.04238200170221,
+      "max_ms": 105.15626699998393,
+      "predictions_per_second": 1111.1638821342974,
+      "request_bytes": 12510
+    },
+    "batch_speedup": 93.82792106311929,
+    "request_reduction_pct": 99.0
+  },
+  "payload_experiment": {
+    "same_prediction_input": true,
+    "method": "Valid JSON whitespace was added before the closing brace; feature values and prediction output were unchanged.",
+    "first_size_with_50pct_median_increase_bytes": 10485884,
+    "results": [
+      {
+        "padding_bytes": 0,
+        "request_bytes": 124,
+        "median_ms": 84.0277999996033,
+        "p95_ms": 92.2557420017256,
+        "min_ms": 76.05737800258794,
+        "max_ms": 97.7042269987578,
+        "median_delta_pct": 0.0
+      },
+      {
+        "padding_bytes": 10240,
+        "request_bytes": 10364,
+        "median_ms": 85.32949550135527,
+        "p95_ms": 92.48001499872771,
+        "min_ms": 75.62866900116205,
+        "max_ms": 94.52763199806213,
+        "median_delta_pct": 1.5491248155468984
+      },
+      {
+        "padding_bytes": 102400,
+        "request_bytes": 102524,
+        "median_ms": 87.68495750155125,
+        "p95_ms": 92.55253599985735,
+        "min_ms": 74.96934099981445,
+        "max_ms": 103.35954899710487,
+        "median_delta_pct": 4.352318520733878
+      },
+      {
+        "padding_bytes": 1048576,
+        "request_bytes": 1048700,
+        "median_ms": 89.53974450014357,
+        "p95_ms": 100.66527400340419,
+        "min_ms": 66.87090199920931,
+        "max_ms": 101.87029000007897,
+        "median_delta_pct": 6.559667753489062
+      },
+      {
+        "padding_bytes": 5242880,
+        "request_bytes": 5243004,
+        "median_ms": 114.46229150169529,
+        "p95_ms": 129.56920899887336,
+        "min_ms": 89.86078100133454,
+        "max_ms": 134.44561799769872,
+        "median_delta_pct": 36.219550556167924
+      },
+      {
+        "padding_bytes": 10485760,
+        "request_bytes": 10485884,
+        "median_ms": 127.41699100115511,
+        "p95_ms": 147.02009599932353,
+        "min_ms": 107.26354900180013,
+        "max_ms": 162.98558299968136,
+        "median_delta_pct": 51.63670951965498
+      },
+      {
+        "padding_bytes": 20971520,
+        "request_bytes": 20971644,
+        "median_ms": 171.84913299934124,
+        "p95_ms": 210.45756400053506,
+        "min_ms": 149.8708449980768,
+        "max_ms": 244.42144700151403,
+        "median_delta_pct": 104.5146165913573
+      }
+    ]
+  }
+}
+
+wrote reports/lab3-variable-local.txt
