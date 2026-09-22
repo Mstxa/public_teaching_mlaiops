@@ -9,7 +9,7 @@ SEED ?= 20260101
 LAB ?= 3
 
 .PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
-        train-remote tune compare register reload-check promote-staging cost-report serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate \
+        train-remote tune compare register reload-check promote-staging cost-report deploy smoke serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate \
 	scan-secrets
 
 help:
@@ -90,10 +90,20 @@ reload-check: ## Load the registered model by version and score rows
 promote-staging: ## Promote the checked model version to the staging alias
 	python -m scripts.promote_lab2 --version $(VERSION)
 
-cost-report: ## Generate estimate and saved Cloud Billing observation
+cost-report: ## Generate the Lab 2 or Lab 3 cost report
+ifeq ($(LAB),3)
+	python -m scripts.lab3_cost_report
+else
 	python -m scripts.lab2_cost_report $(if $(ACTUAL_THB),--actual-thb $(ACTUAL_THB))
+endif
 
 # --- Lab 3 -------------------------------------------------------------------
+deploy: ## Deploy the registered model to the managed Lab 3 endpoint
+	python -m scripts.lab3_endpoint deploy
+
+smoke: ## Invoke the managed endpoint with three known payloads
+	python -m scripts.lab3_endpoint smoke
+
 serve: ## Run the inference service locally on :8080
 	python scripts/export_model.py --out reports/model.joblib
 	MODEL_REGISTRY_NAME= MODEL_PATH=reports/model.joblib MODEL_VERSION=local uvicorn service.app:app --port 8080
