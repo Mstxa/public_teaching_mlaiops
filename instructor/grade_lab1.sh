@@ -12,6 +12,11 @@
 
 set -uo pipefail
 
+# The secret scan runs from OUR copy, never the student's. A check supplied by the
+# party being checked is not a check.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCANNER="$HERE/../scripts/scan_secrets.py"
+
 REPO="${1:?usage: grade_lab1.sh <repo-url> [workdir]}"
 WORK="${2:-$(mktemp -d)}"
 PASS=0; FAIL=0
@@ -35,7 +40,7 @@ cd "$WORK/repo" || exit 1
 
 echo "1. Hygiene"
 check "cloud.env not committed"        bash -c '! git log --all --name-only --pretty=format: | grep -qx "cloud.env"'
-check "no credentials in history"      bash -c '! git log -p --all | grep -qiE "AKIA[0-9A-Z]{16}|BEGIN (RSA |EC )?PRIVATE KEY|password[[:space:]]*=[[:space:]]*[^ ]"'
+check "no credentials in history"      python3 "$SCANNER"
 check "README has a claim line"        grep -qiE "expected[[:space:]]+test_roc_auc[[:space:]]*[:=]" README.md
 check "no REPLACE blocks remain"       bash -c '! grep -q "REPLACE" README.md'
 

@@ -145,7 +145,10 @@ requires a conversation has failed the lab regardless of what the code does.
 - [ ] `dvc push` completed; a grader can `dvc pull`
 - [ ] Five or more tracked runs with params, metrics, data fingerprint, and commit SHA
 - [ ] Every **REPLACE** block above is gone (the course-materials block at the top stays)
-- [ ] `git log -p | grep -i -E "secret|password|AKIA|BEGIN PRIVATE"` returns nothing
+- [ ] `make scan-secrets` is clean
 
 That last check is not optional. A credential in Git history is an automatic deduction in this
-course, and rotating it is your responsibility, not the grader's.
+course, and rotating it is your responsibility, not the grader's. The scan reads *history*, not
+your working tree, because deleting the file is the thing that makes people believe they are
+safe. If it finds something, rotate the credential first and rewrite history second — in that
+order, because the first one is the only step that actually helps.

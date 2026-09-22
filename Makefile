@@ -8,7 +8,8 @@ PLATFORM ?= linux/amd64
 SEED ?= 20260101
 
 .PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
-        tune compare reload-check serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate
+        tune compare reload-check serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate \
+        scan-secrets
 
 help:
 	@grep -E "^[a-zA-Z_-]+:.*?## .*$$" $(MAKEFILE_LIST) | awk -F":.*?## " "{printf \"  %-20s %s\\n\", \$$1, \$$2}"
@@ -49,6 +50,9 @@ reproduce: data image ## THE ONE COMMAND. Grader runs this.
 
 verify: ## Check the produced metric against the README claim
 	python scripts/verify_metric.py
+
+scan-secrets: ## Scan Git history for credential-shaped values
+	python scripts/scan_secrets.py
 
 teardown: ## Delete every resource tagged course=itcs355 for this lab
 	python -c "from src import config; from cloudlayer.factory import get_adapter; \

@@ -8,6 +8,11 @@
 
 set -uo pipefail
 
+# The secret scan runs from OUR copy, never the student's. A check supplied by the
+# party being checked is not a check.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCANNER="$HERE/../scripts/scan_secrets.py"
+
 LAB="${1:?usage: grade_lab.sh <2|3|4|5> <repo-url> [workdir]}"
 REPO="${2:?repo url required}"
 WORK="${3:-$(mktemp -d)}"
@@ -30,7 +35,7 @@ cd "$WORK/repo" || exit 1
 echo "ITCS355 Lab $LAB grading — $REPO"; echo
 
 echo "Common"
-check "no credentials in history"  bash -c '! git log -p --all | grep -qiE "AKIA[0-9A-Z]{16}|BEGIN (RSA |EC )?PRIVATE KEY"'
+check "no credentials in history"  python3 "$SCANNER"
 check "cloud.env not committed"    bash -c '! git log --all --name-only --pretty=format: | grep -qx "cloud.env"'
 check "portability audit clean"    python scripts/portability_audit.py
 check "data tests pass"            bash -c 'make data >/dev/null && pytest -q tests/test_data.py'

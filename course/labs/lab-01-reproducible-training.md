@@ -165,7 +165,7 @@ make reproduce       # the one command
 - [ ] Leakage test in `tests/test_data.py`, passing
 - [ ] Five or more tracked runs with params, metrics, data version, commit SHA, and artifact
 - [ ] `README.md` with the one command, expected metric, and tolerance
-- [ ] `cloud.env` absent from Git history — check, do not assume
+- [ ] `cloud.env` absent from Git history, and `make scan-secrets` clean — check, do not assume
 
 ## Acceptance criteria
 
