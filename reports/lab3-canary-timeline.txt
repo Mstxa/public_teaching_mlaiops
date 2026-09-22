@@ -1,0 +1,13 @@
+canary_test_started=2026-09-22T17:58:07+07:00
+traffic_split=baseline:90,canary:10
+baseline_deployed_model_id=4679725996977422336
+canary_deployed_model_id=522059115984322560
+canary_test_finished=2026-09-22T17:59:08+07:00
+rollback_triggered=2026-09-22T17:59:29+07:00
+trigger_metric=predict_latency_ms_p95
+observed_p95_ms=786.893732
+target_p95_ms=500
+action=undeploy_canary_and_restore_baseline_100_percent
+rollback_completed=2026-09-22T17:59:32+07:00
+post_rollback_test_started=2026-09-22T18:00:03+07:00
+post_rollback_test_finished=2026-09-22T18:01:03+07:00
