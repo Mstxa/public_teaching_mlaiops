@@ -125,7 +125,7 @@ def main() -> int:
     payload_rows = []
     payload_medians: dict[int, float] = {}
 
-    for padding_bytes in (0, 10_240, 102_400, 1_048_576, 5_242_880):
+    for padding_bytes in (0, 10_240, 102_400, 1_048_576, 5_242_880, 10_485_760, 20_971_520):
         padded = (
             compact[:-1] + (" " * padding_bytes) + "}"
         ).encode()
