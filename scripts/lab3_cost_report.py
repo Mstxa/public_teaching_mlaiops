@@ -15,6 +15,7 @@ def main() -> int:
     parser.add_argument("--instance", default="n1-standard-2")
     parser.add_argument("--rps", type=float, default=55.735)
     parser.add_argument("--utilisation", type=float, default=1.0)
+    parser.add_argument("--comparison-rps", type=float, default=53.211176)
     parser.add_argument("--larger-instance", default="n1-standard-4")
     parser.add_argument("--larger-rps", type=float, default=78.564936)
     parser.add_argument("--batch-hours", type=float, default=0.5)
@@ -33,6 +34,11 @@ def main() -> int:
     unit_cost = costs.cost_per_1k_predictions(
         rate,
         args.rps,
+        args.utilisation,
+    )
+    comparison_unit_cost = costs.cost_per_1k_predictions(
+        rate,
+        args.comparison_rps,
         args.utilisation,
     )
     larger_unit_cost = costs.cost_per_1k_predictions(
@@ -67,11 +73,11 @@ Recorded `{datetime.now(timezone.utc).isoformat()}`.
 
 | Instance | THB/hour | Throughput (req/s) | THB/1,000 |
 |---|---:|---:|---:|
-| `{args.instance}` | {rate:.2f} | {args.rps:.3f} | {unit_cost:.5f} |
+| `{args.instance}` | {rate:.2f} | {args.comparison_rps:.3f} | {comparison_unit_cost:.5f} |
 | `{args.larger_instance}` | {larger_rate:.2f} | {args.larger_rps:.3f} | {larger_unit_cost:.5f} |
 
 The larger instance changes unit cost by
-{((larger_unit_cost / unit_cost) - 1) * 100:+.2f}%.
+{((larger_unit_cost / comparison_unit_cost) - 1) * 100:+.2f}%.
 
 ## Batch inference break-even
 

@@ -1,0 +1,78 @@
+{
+  "recorded_at": "2026-09-22T15:58:55.631321+00:00",
+  "command": "make smoke",
+  "endpoint": "itcs355-6688121-lab3",
+  "payload_count": 3,
+  "all_passed": true,
+  "results": [
+    {
+      "payload_number": 1,
+      "input": {
+        "temp_c": 78.4,
+        "vibration_mm_s": 3.1,
+        "pressure_kpa": 315.2,
+        "hours_since_service": 4200,
+        "load_pct": 68.0,
+        "ambient_humidity": 55.0
+      },
+      "response": {
+        "deployedModelId": "3764650847691079680",
+        "model": "projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1",
+        "modelDisplayName": "itcs355-6688121-serve-v1",
+        "modelVersionId": "1",
+        "predictions": [
+          {
+            "model_version": "1",
+            "probability": 0.02679211647646812
+          }
+        ]
+      }
+    },
+    {
+      "payload_number": 2,
+      "input": {
+        "temp_c": 64.0,
+        "vibration_mm_s": 1.8,
+        "pressure_kpa": 298.0,
+        "hours_since_service": 900,
+        "load_pct": 41.0,
+        "ambient_humidity": 47.0
+      },
+      "response": {
+        "deployedModelId": "3764650847691079680",
+        "model": "projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1",
+        "modelDisplayName": "itcs355-6688121-serve-v1",
+        "modelVersionId": "1",
+        "predictions": [
+          {
+            "model_version": "1",
+            "probability": 0.01330444173223997
+          }
+        ]
+      }
+    },
+    {
+      "payload_number": 3,
+      "input": {
+        "temp_c": 96.0,
+        "vibration_mm_s": 7.2,
+        "pressure_kpa": 342.0,
+        "hours_since_service": 8100,
+        "load_pct": 91.0,
+        "ambient_humidity": 73.0
+      },
+      "response": {
+        "deployedModelId": "3764650847691079680",
+        "model": "projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1",
+        "modelDisplayName": "itcs355-6688121-serve-v1",
+        "modelVersionId": "1",
+        "predictions": [
+          {
+            "model_version": "1",
+            "probability": 0.5076119536236748
+          }
+        ]
+      }
+    }
+  ]
+}

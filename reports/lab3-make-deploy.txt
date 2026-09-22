@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-09-22T15:56:19.564342+00:00",
+  "command": "make deploy",
+  "model_ref": "itcs355-6688121@1",
+  "endpoint": "itcs355-6688121-lab3",
+  "instance": "n1-standard-2",
+  "result": {
+    "endpoint": "projects/475085312620/locations/asia-southeast1/endpoints/itcs355-6688121-lab3",
+    "model": "projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1",
+    "source_model": "itcs355-6688121@1",
+    "serving_image": "asia-southeast1-docker.pkg.dev/itcs355-6688121/itcs355/itcs355-serve@sha256:153bf1640584de74c060b5a02047f46d369b3b4bfe166fb8a29e988d2548ad1a"
+  }
+}
