@@ -1,9 +1,9 @@
 
-         /\      Grafana   /‾‾/  
-    /\  /  \     |\  __   /  /   
-   /  \/    \    | |/ /  /   ‾‾\ 
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
   /          \   |   (  |  (‾)  |
- / __________ \  |_|\_\  \_____/ 
+ / __________ \  |_|\_\  \_____/
 
 
      execution: local
@@ -195,7 +195,7 @@ running (1m00.0s), 10/10 VUs, 3190 complete and 0 interrupted iterations
 default   [ 100% ] 10 VUs  1m00.0s/1m0s
 
 
-  █ THRESHOLDS 
+  █ THRESHOLDS
 
     predict_failures
     ✓ 'rate<0.01' rate=0.00%
@@ -204,7 +204,7 @@ default   [ 100% ] 10 VUs  1m00.0s/1m0s
     ✓ 'p(95)<500' p(95)=336.04159
 
 
-  █ TOTAL RESULTS 
+  █ TOTAL RESULTS
 
     checks_total.......: 9603    159.633528/s
     checks_succeeded...: 100.00% 9603 out of 9603
@@ -221,13 +221,13 @@ default   [ 100% ] 10 VUs  1m00.0s/1m0s
     predict_latency_ms.............: avg=187.00455 min=71.10865 med=167.177187 p(90)=276.029442 p(95)=336.04159 p(99)=488.785834 max=669.248089
 
     HTTP
-    http_req_duration..............: avg=187ms     min=71.1ms   med=167.17ms   p(90)=276.02ms   p(95)=336.04ms  p(99)=488.78ms   max=669.24ms  
-      { expected_response:true }...: avg=187ms     min=71.1ms   med=167.17ms   p(90)=276.02ms   p(95)=336.04ms  p(99)=488.78ms   max=669.24ms  
+    http_req_duration..............: avg=187ms     min=71.1ms   med=167.17ms   p(90)=276.02ms   p(95)=336.04ms  p(99)=488.78ms   max=669.24ms
+      { expected_response:true }...: avg=187ms     min=71.1ms   med=167.17ms   p(90)=276.02ms   p(95)=336.04ms  p(99)=488.78ms   max=669.24ms
     http_req_failed................: 0.00%  0 out of 3201
     http_reqs......................: 3201   53.211176/s
 
     EXECUTION
-    iteration_duration.............: avg=187.69ms  min=71.5ms   med=167.64ms   p(90)=277.18ms   p(95)=336.44ms  p(99)=489.18ms   max=737.87ms  
+    iteration_duration.............: avg=187.69ms  min=71.5ms   med=167.64ms   p(90)=277.18ms   p(95)=336.44ms  p(99)=489.18ms   max=737.87ms
     iterations.....................: 3201   53.211176/s
     vus............................: 10     min=10        max=10
     vus_max........................: 10     min=10        max=10
