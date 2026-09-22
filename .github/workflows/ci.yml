@@ -15,6 +15,24 @@ permissions:
   id-token: write        # required for OIDC. See cd.yml — no long-lived keys anywhere.
 
 jobs:
+  # First, and on its own, because it is the only check whose failure cannot be
+  # undone by a later commit. Stdlib only — no pip install, so it reports in
+  # seconds and never waits on a dependency resolution that might itself be the
+  # thing that broke.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # NOT optional. The default depth of 1 makes this scan useless: it would
+          # see a single commit and pass on a repository full of leaked keys. The
+          # scanner refuses to run on a shallow clone rather than pass quietly, so
+          # removing this line fails the job — which is the intended behaviour.
+          fetch-depth: 0
+
+      - name: Scan history for credentials
+        run: python3 scripts/scan_secrets.py
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -52,7 +70,9 @@ jobs:
         run: pytest -q tests/test_service.py
 
   build:
-    needs: test
+    # Both, deliberately: nothing gets built or pushed from a commit that leaks a
+    # credential, even though CD already gates on the whole workflow being green.
+    needs: [test, secrets]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

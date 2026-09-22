@@ -20,7 +20,7 @@ whether a stranger can reproduce it is.
 make reproduce
 ```
 
-expected test_roc_auc: 0.8494 ± 0.0010
+expected test_roc_auc: 0.8482 ± 0.0010
 
 Runtime: about 40 seconds on 4 cores. No cloud account or credentials needed for this command —
 that is deliberate, and it is why a grader can run it.
@@ -129,7 +129,11 @@ Run `make cost-report` to generate `reports/lab2-cost.md` from the trial checkpo
 - [ ] Image builds for `linux/amd64` and is pushed, digest-pinned
 - [ ] `dvc push` completed; a grader can `dvc pull`
 - [ ] Five or more tracked runs with params, metrics, data fingerprint, and commit SHA
-- [ ] `git log -p | grep -i -E "secret|password|AKIA|BEGIN PRIVATE"` returns nothing
+- [ ] Every **REPLACE** block above is gone (the course-materials block at the top stays)
+- [ ] `make scan-secrets` is clean
 
 That last check is not optional. A credential in Git history is an automatic deduction in this
-course, and rotating it is your responsibility, not the grader's.
+course, and rotating it is your responsibility, not the grader's. The scan reads *history*, not
+your working tree, because deleting the file is the thing that makes people believe they are
+safe. If it finds something, rotate the credential first and rewrite history second — in that
+order, because the first one is the only step that actually helps.
