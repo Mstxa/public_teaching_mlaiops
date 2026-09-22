@@ -1,0 +1,21 @@
+{
+  "instance": "n1-standard-2",
+  "deployment": {
+    "endpoint": "projects/475085312620/locations/asia-southeast1/endpoints/itcs355-6688121-lab3-sizing",
+    "model": "projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1",
+    "source_model": "itcs355-6688121@1",
+    "serving_image": "asia-southeast1-docker.pkg.dev/itcs355-6688121/itcs355/itcs355-serve@sha256:153bf1640584de74c060b5a02047f46d369b3b4bfe166fb8a29e988d2548ad1a"
+  },
+  "smoke_test": {
+    "deployedModelId": "4862121781885927424",
+    "model": "projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1",
+    "modelDisplayName": "itcs355-6688121-serve-v1",
+    "modelVersionId": "1",
+    "predictions": [
+      {
+        "model_version": "1",
+        "probability": 0.02679211647646812
+      }
+    ]
+  }
+}

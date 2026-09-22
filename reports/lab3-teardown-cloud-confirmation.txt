@@ -1,0 +1,5 @@
+endpoints_remaining:
+Using endpoint [https://asia-southeast1-aiplatform.googleapis.com/]
+WARNING: The following filter keys were not present in any resource : labels.course, labels.lab, labels.student
+models_remaining:
+Using endpoint [https://asia-southeast1-aiplatform.googleapis.com/]

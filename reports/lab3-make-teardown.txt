@@ -1,0 +1,6 @@
+python -c "from src import config; from cloudlayer.factory import get_adapter; \
+cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(3)))"
+['projects/475085312620/locations/asia-southeast1/endpoints/itcs355-6688121-lab3-sizing', 'projects/475085312620/locations/asia-southeast1/models/itcs355-6688121-serve-v1']
+python -c "from src import config; from cloudlayer.factory import get_adapter; \
+cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(3)))"
+[]
