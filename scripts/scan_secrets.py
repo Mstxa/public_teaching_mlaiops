@@ -59,6 +59,31 @@ PLACEHOLDER = re.compile(
 )
 
 
+def refuse_if_shallow(allow: bool) -> None:
+    """A shallow clone reports CLEAN on a repository full of secrets.
+
+    `actions/checkout` fetches depth 1 by default, so a scan wired into CI without
+    `fetch-depth: 0` sees one commit and passes. Verified: a depth-1 clone of a
+    repository with eight planted credentials exits 0. "Cannot verify" must never
+    be reported as "verified", so this is a hard stop rather than a warning.
+    """
+    probe = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                           capture_output=True, text=True)
+    if probe.returncode != 0 or probe.stdout.strip() != "true":
+        return
+    if allow:
+        print("scan_secrets: WARNING shallow clone — history before the graft is "
+              "unscanned", file=sys.stderr)
+        return
+    print("scan_secrets: refusing to scan a shallow clone — it would report CLEAN\n"
+          "  whatever is in the truncated history.\n"
+          "  GitHub Actions:  actions/checkout@v4 with `fetch-depth: 0`\n"
+          "  Locally:         git fetch --unshallow\n"
+          "  Override with --allow-shallow if you know what you are giving up.",
+          file=sys.stderr)
+    raise SystemExit(2)
+
+
 def added_lines(rev_range: str | None) -> list[tuple[str, str, str]]:
     """Yield (commit, path, text) for every line a commit ADDED.
 
@@ -113,8 +138,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--rev-range", help="limit the scan, e.g. origin/main..HEAD")
     ap.add_argument("--quiet", action="store_true", help="exit code only")
+    ap.add_argument("--allow-shallow", action="store_true",
+                    help="scan anyway on a shallow clone (scans less than it appears to)")
     args = ap.parse_args()
 
+    refuse_if_shallow(args.allow_shallow)
     hits = findings(added_lines(args.rev_range))
     if not hits:
         if not args.quiet:
