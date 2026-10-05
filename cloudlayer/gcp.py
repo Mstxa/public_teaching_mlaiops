@@ -381,7 +381,10 @@ class GcpAdapter(CloudAdapter):
 
         safe_name = re.sub(r"[^a-z0-9_-]", "-", model_name.lower())
         safe_version = re.sub(r"[^a-z0-9_-]", "-", model_version.lower())
-        serving_model_id = f"{safe_name}-serve-v{safe_version}"
+        image_digest = image_uri.rsplit("@sha256:", 1)[1]
+        serving_model_id = (
+            f"{safe_name}-serve-v{safe_version}-{image_digest[:12]}"
+        )
         endpoint_id = re.sub(r"[^a-z0-9_-]", "-", endpoint.lower())
         deployed_name = f"{serving_model_id}-deployment"
 
@@ -497,6 +500,7 @@ class GcpAdapter(CloudAdapter):
                     f"--machine-type={instance}",
                     "--min-replica-count=1",
                     "--max-replica-count=1",
+                    "--traffic-split=0=100",
                     f"--service-account={service_account}",
                     f"--region={self.cfg.region}",
                 ]
