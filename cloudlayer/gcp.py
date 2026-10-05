@@ -29,7 +29,7 @@ from urllib.parse import urlparse
 import google.auth
 from google.api_core.exceptions import NotFound
 from google.auth.transport.requests import AuthorizedSession
-from google.cloud import monitoring_v3, storage
+from google.cloud import storage
 
 from cloudlayer.base import CloudAdapter
 
@@ -547,6 +547,11 @@ class GcpAdapter(CloudAdapter):
 
     def emit_metric(self, name: str, value: float, unit: str = "None") -> None:
         """Write one gauge point to Cloud Monitoring."""
+        # Monitoring isn't needed by the inference container. Load it only
+        # when custom metrics are emitted so the serving image can keep its
+        # smaller dependency set while still using this adapter for GCS.
+        from google.cloud import monitoring_v3
+
         metric_name = re.sub(r"[^a-zA-Z0-9_/.-]", "_", name).replace(".", "/")
         client = monitoring_v3.MetricServiceClient()
 
