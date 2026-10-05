@@ -13,38 +13,26 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from urllib.parse import urlparse
 
 import pandas as pd
-from google.cloud import storage
 
 from cloudlayer.factory import get_adapter
 from monitoring.drift import PSI_ALERT_THRESHOLD, compare
 from src import config, data
 
 
-def _download_csv(uri: str, destination: Path) -> None:
-    parsed = urlparse(uri)
-    if parsed.scheme != "gs" or not parsed.netloc or not parsed.path.strip("/"):
-        raise ValueError(f"Expected a gs:// object URI, got {uri!r}")
-
-    client = storage.Client(project=os.environ["PROJECT_ID"])
-    client.bucket(parsed.netloc).blob(parsed.path.lstrip("/")).download_to_filename(
-        destination
-    )
-
-
 def main() -> int:
     reference_uri = os.environ["REFERENCE_URI"]
     current_uri = os.environ["CURRENT_URI"]
     threshold = float(os.environ.get("PSI_THRESHOLD", PSI_ALERT_THRESHOLD))
+    adapter = get_adapter(config.load(strict=False))
 
     with TemporaryDirectory(prefix="itcs355-drift-") as directory:
         workdir = Path(directory)
         reference_path = workdir / "reference.csv"
         current_path = workdir / "current.csv"
-        _download_csv(reference_uri, reference_path)
-        _download_csv(current_uri, current_path)
+        adapter.download(reference_uri, str(reference_path))
+        adapter.download(current_uri, str(current_path))
 
         results = compare(
             pd.read_csv(reference_path),
@@ -52,7 +40,6 @@ def main() -> int:
             data.FEATURES,
         )
 
-    adapter = get_adapter(config.load(strict=False))
     for result in results:
         adapter.emit_metric(f"drift.psi.{result.feature}", result.psi)
 
