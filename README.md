@@ -137,3 +137,35 @@ course, and rotating it is your responsibility, not the grader's. The scan reads
 your working tree, because deleting the file is the thing that makes people believe they are
 safe. If it finds something, rotate the credential first and rewrite history second — in that
 order, because the first one is the only step that actually helps.
+
+---
+
+## Lab 4 — CI/CD, monitoring, and drift
+
+### Data-contract incident coverage
+
+- `test_schema_columns_present_and_typed` catches an upstream producer
+  dropping, renaming, or adding a sensor column, or changing its data type.
+- `test_no_nulls_in_required_columns` catches ingestion failures that silently
+  produce missing sensor readings.
+- `test_features_within_plausible_ranges` catches unit-conversion and sensor
+  parsing errors, such as Fahrenheit being supplied as Celsius or Pa as kPa.
+- `test_target_is_binary_and_not_degenerate` catches label-pipeline failures
+  that introduce invalid classes or collapse the target to one value.
+- `test_identifier_is_unique` catches duplicate events caused by replayed
+  ingestion batches.
+- `test_no_machine_leaks_across_splits` catches evaluation leakage in which
+  readings from the same machine appear in both training and evaluation data.
+
+### Drift-threshold justification
+
+The PSI alert threshold is `0.06`. It was calibrated using 30 random
+reference-to-reference splits of the 6,000-row training dataset. The largest
+PSI produced by normal sampling variation was `0.01953`; three times that
+value is `0.05859`, rounded to `0.06`.
+
+The deliberate `temp_c` shift of `+6°C` changed the mean from `79.58°C` to
+`85.58°C` and produced PSI `0.38333` and KS `0.24567`. This is more than six
+times the alert threshold. The threshold therefore separates the measured
+normal variation from the injected incident instead of relying on a generic
+credit-scoring default.

@@ -28,3 +28,6 @@ __pycache__/
 # Instructor material lives in the private teaching repository. If this path ever
 # reappears here it is a mistake, not a convenience.
 instructor/
+
+# Lab 4 generated drift input
+data/current.csv
