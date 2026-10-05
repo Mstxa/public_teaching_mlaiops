@@ -9,3 +9,10 @@
 **What this would have cost if unnoticed for a week:** Assuming 10,000 predictions per day, as many as 70,000 maintenance predictions could have been made on off-distribution temperatures during one week. The direct cloud cost might remain similar, but unreliable maintenance decisions could create unnecessary inspections or missed failures; this estimate should be replaced with the production request rate and business cost when available.
 
 **How to prevent or detect it faster:** Run the detector every minute with Cloud Scheduler, retain the `0.06` alert threshold, and add an upstream rolling-mean/range check for `temp_c` so a producer-side shift is identified before it reaches model inference.
+
+The one-minute control is now implemented by Cloud Scheduler job
+`itcs355-lab4-drift-every-minute`, which invokes Cloud Run Job
+`itcs355-lab4-drift`. A scheduled request at 18:39:11 ICT on 5 October 2026
+returned HTTP 200. The runtime reads immutable reference and recent-window
+objects from GCS, emits PSI metrics under `custom.googleapis.com/itcs355`, and
+uses separate least-privilege runtime and scheduler identities.

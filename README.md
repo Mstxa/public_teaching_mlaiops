@@ -181,3 +181,20 @@ detection took 10 seconds. The Cloud Monitoring policy
 latency was therefore approximately 2 minutes 32 seconds; the email timestamp
 has one-minute resolution. The incident response and impact assumptions are
 recorded in `docs/lab4-drift-postmortem.md`.
+
+### Scheduled-detector evidence
+
+The detector also runs as the Cloud Run Job `itcs355-lab4-drift`, using the
+least-privilege service account `itcs355-lab4-drift`. Its container was built
+from commit `4a3e0ea1aa156b4ae32f34328b1f0d1e9de8f508` and is pinned by digest
+`sha256:d9b70ee7507f00253532ac13d9f852f4ad689aa8624b9250ff4fd971e2973184`.
+The job reads its reference and current windows from separate GCS objects and
+emits the same per-feature PSI metrics used by the alert policy.
+
+Cloud Scheduler job `itcs355-lab4-drift-every-minute` invokes the Cloud Run
+Jobs API on the `* * * * *` schedule in the `Asia/Bangkok` time zone. The
+scheduled request at 18:39:11 ICT on 5 October 2026 returned HTTP 200, and the
+A detector execution logged `ALERT: 1 feature(s) above 0.06: temp_c` while
+exiting zero.
+The scheduler has its own identity with only `roles/run.invoker`; the runtime
+identity separately has Storage Object Viewer and Monitoring Metric Writer.
