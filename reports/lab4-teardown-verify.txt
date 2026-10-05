@@ -1,0 +1,7 @@
+Lab 4 teardown verification — 2026-10-05T23:01:34+07:00
+PASS: Cloud Scheduler job is absent
+PASS: Cloud Run drift job is absent
+WARNING: The following filter keys were not present in any resource : displayName
+PASS: Lab 4 dashboard is absent
+WARNING: The following filter keys were not present in any resource : displayName
+PASS: Lab 4 alert policy is absent

@@ -1,0 +1,3 @@
+python -c "from src import config; from cloudlayer.factory import get_adapter; \
+cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(4)))"
+['projects/itcs355-6688121/locations/asia-southeast1/jobs/itcs355-lab4-drift-every-minute', 'projects/itcs355-6688121/locations/asia-southeast1/jobs/itcs355-lab4-drift', 'projects/itcs355-6688121/alertPolicies/16820721250148899762', 'projects/475085312620/dashboards/fd49739f-456e-434a-9379-67651e56f3ad']
