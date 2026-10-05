@@ -67,6 +67,9 @@ def main() -> None:
     args = ap.parse_args()
 
     df = build(args.seed)
+
+    # Deliberate Lab 4 failure: prove that CI rejects an unexpected column.
+    df["unexpected_sensor"] = 1.0
     args.out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.out, index=False, lineterminator="\n")
     rate = df["failed_within_7d"].mean()
