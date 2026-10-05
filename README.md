@@ -169,3 +169,15 @@ The deliberate `temp_c` shift of `+6°C` changed the mean from `79.58°C` to
 times the alert threshold. The threshold therefore separates the measured
 normal variation from the injected incident instead of relying on a generic
 credit-scoring default.
+
+### Injected-drift evidence
+
+On 5 October 2026 the controlled `temp_c` shift was injected at 15:08:28 ICT.
+The detector emitted PSI `0.38333` to
+`custom.googleapis.com/itcs355/drift/psi/temp_c` at 15:08:38 ICT, so local
+detection took 10 seconds. The Cloud Monitoring policy
+`Lab 4 - temp_c PSI above 0.06` delivered a firing email at approximately
+15:11 ICT with the observed value and threshold. End-to-end notification
+latency was therefore approximately 2 minutes 32 seconds; the email timestamp
+has one-minute resolution. The incident response and impact assumptions are
+recorded in `docs/lab4-drift-postmortem.md`.
