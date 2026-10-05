@@ -29,7 +29,7 @@ from urllib.parse import urlparse
 import google.auth
 from google.api_core.exceptions import NotFound
 from google.auth.transport.requests import AuthorizedSession
-from google.cloud import storage
+from google.cloud import monitoring_v3, storage
 
 from cloudlayer.base import CloudAdapter
 
@@ -540,6 +540,38 @@ class GcpAdapter(CloudAdapter):
                 f"Vertex endpoint returned no predictions: {response}"
             )
         return response
+
+    def emit_metric(self, name: str, value: float, unit: str = "None") -> None:
+        """Write one gauge point to Cloud Monitoring."""
+        metric_name = re.sub(r"[^a-zA-Z0-9_/.-]", "_", name).replace(".", "/")
+        client = monitoring_v3.MetricServiceClient()
+
+        series = monitoring_v3.TimeSeries()
+        series.metric.type = f"custom.googleapis.com/itcs355/{metric_name}"
+        series.resource.type = "global"
+        series.resource.labels["project_id"] = self.cfg.project_id
+
+        now = time.time()
+        seconds = int(now)
+        nanos = int((now - seconds) * 1_000_000_000)
+
+        point = monitoring_v3.Point(
+            {
+                "interval": {
+                    "end_time": {
+                        "seconds": seconds,
+                        "nanos": nanos,
+                    }
+                },
+                "value": {"double_value": float(value)},
+            }
+        )
+        series.points = [point]
+
+        client.create_time_series(
+            name=f"projects/{self.cfg.project_id}",
+            time_series=[series],
+        )
 
     def _teardown_lab3(self, tags: dict[str, str]) -> list[str]:
         label_filter = " AND ".join(
