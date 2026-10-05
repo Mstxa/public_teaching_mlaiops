@@ -1,8 +1,7 @@
-# ITCS355 Lab 4 — continuous deployment.
+# ITCS355 Lab 4 — continuous deployment to GCP staging.
 #
-# Runs only on main, only after CI is green. Credentials come from OIDC federation, not
-# from stored keys — TODO(Lab 4): uncomment the block for YOUR provider and delete the
-# other two.
+# This workflow is intentionally separate from CI. It can run only for a successful CI
+# execution on main, and it authenticates with GitHub OIDC rather than a stored key.
 
 name: CD
 
@@ -16,47 +15,97 @@ permissions:
   contents: read
   id-token: write
 
+env:
+  CLOUD_PROVIDER: gcp
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.REGION }}
+  BLOB_URI: ${{ vars.BLOB_URI }}
+  CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
+  MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+  MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
+  MODEL_VERSION: ${{ vars.MODEL_VERSION }}
+  IDENTITY_REF: ${{ vars.IDENTITY_REF }}
+  STAGING_ENDPOINT: ${{ vars.STAGING_ENDPOINT }}
+  INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
+
 jobs:
   deploy-staging:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: staging
+
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out the exact commit that passed CI
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
-      # --- AWS ---------------------------------------------------------------
-      # - uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-      #     aws-region: ${{ vars.REGION }}
-      # - run: aws ecr get-login-password --region ${{ vars.REGION }} | docker login --username AWS --password-stdin ${{ vars.CONTAINER_REGISTRY }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
-      # --- Azure -------------------------------------------------------------
-      # - uses: azure/login@v2
-      #   with:
-      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
-      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      # - run: az acr login --name ${{ vars.ACR_NAME }}
-
-      # --- GCP ---------------------------------------------------------------
-      # - uses: google-github-actions/auth@v2
-      #   with:
-      #     workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-      #     service_account: ${{ secrets.GCP_DEPLOY_SA }}
-      # - run: gcloud auth configure-docker ${{ vars.REGION }}-docker.pkg.dev
-
-      - name: Push image
+      - name: Build the SHA-tagged serving image
+        env:
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          echo "TODO(Lab 4): push the SHA-tagged image through your adapter"
-          # python -c "from src import config; from cloudlayer.factory import get_adapter; \
-          #   print(get_adapter(config.load()).push_image('itcs355-serve:${{ github.sha }}'))"
+          image="${CONTAINER_REGISTRY}/itcs355-serve:${COMMIT_SHA}"
+          docker buildx build \
+            --platform linux/amd64 \
+            --file service/Dockerfile.serve \
+            --tag "${image}" \
+            --load \
+            .
 
-      - name: Deploy to staging
-        run: |
-          echo "TODO(Lab 4): adapter.deploy(model_ref, endpoint, instance)"
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
 
-      - name: Smoke test
+      - name: Install pinned deployment dependencies
         run: |
-          echo "TODO(Lab 4): adapter.invoke() with three known payloads."
-          echo "A deploy that is not smoke-tested is a deploy you have not verified."
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r requirements.txt
+
+      # Authenticate only after the slow local build and dependency install. GitHub's
+      # OIDC token is deliberately short-lived, so this keeps all cloud mutations inside
+      # the credential window.
+      - name: Authenticate to Google Cloud with OIDC
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Install Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Artifact Registry authentication
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Push the SHA-tagged serving image
+        id: image
+        env:
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          image="${CONTAINER_REGISTRY}/itcs355-serve:${COMMIT_SHA}"
+          docker push "${image}"
+          digest_uri="$(gcloud artifacts docker images describe "${image}" \
+            --project="${PROJECT_ID}" \
+            --format='value(image_summary.fully_qualified_digest)')"
+          test -n "${digest_uri}"
+          echo "digest_uri=${digest_uri}" >> "${GITHUB_OUTPUT}"
+          echo "Pushed ${digest_uri}"
+
+      - name: Deploy the registered model to staging
+        env:
+          SERVING_IMAGE_URI: ${{ steps.image.outputs.digest_uri }}
+        run: |
+          python -m scripts.lab3_endpoint deploy \
+            --model-ref "${MODEL_REGISTRY_NAME}@${MODEL_VERSION}" \
+            --endpoint "${STAGING_ENDPOINT}" \
+            --instance "${INSTANCE_TYPE}"
+
+      - name: Smoke-test three known payloads
+        run: |
+          python -m scripts.lab3_endpoint smoke \
+            --endpoint "${STAGING_ENDPOINT}"

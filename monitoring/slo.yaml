@@ -1,32 +1,35 @@
 # Lab 4 — service level objectives.
 #
-# Most students write a target and stop. The third field is where the thinking is: an SLO
-# without a stated response to exhaustion is a wish, not an objective.
+# Each objective states a target, measurement window, and concrete response
+# when its error budget is exhausted.
 
 service: itcs355-predict
 
 objectives:
   - name: availability
-    target: 0.995              # TODO(Lab 4): your number, and defend it
+    target: 0.995
     window: 30d
     measurement: "successful responses / total responses, excluding 4xx"
     on_budget_exhausted: |
-      TODO(Lab 4): what actually happens. Freeze deploys? Page someone? Fall back to the
-      last known-good version? Accept it and revise the target? All are defensible;
-      silence is not.
+      Freeze new deployments and notify the service owner. Check whether the
+      increase in 5xx responses began with the latest deployment. Roll back to
+      the last known-good version when the failure correlates with that release;
+      otherwise investigate the endpoint and upstream dependencies.
 
   - name: latency
-    target_p95_ms: 200         # TODO(Lab 4): must match the target you set in loadtest/k6.js
+    target_p95_ms: 500
     window: 7d
     measurement: "p95 of /predict, measured at the endpoint, not at the client"
     on_budget_exhausted: |
-      TODO(Lab 4)
+      Freeze deployments, inspect p95 and p99 by model version, and check for
+      cold starts, model loading per request, or insufficient endpoint capacity.
+      Roll back when the regression started with a new model or serving image.
 
   - name: freshness
     target_max_model_age_days: 30
     window: continuous
     measurement: "days since the production model version was trained"
     on_budget_exhausted: |
-      TODO(Lab 4): this one interacts with your retraining trigger in Lab 5. Keep them
-      consistent — an SLO demanding a 30-day-old model and a 90-day retrain schedule is
-      a contradiction you should notice here rather than in production.
+      Open a retraining review, but do not promote a new model automatically.
+      First verify schema, null rate, drift, label availability, and upstream
+      pipeline health; retrain only when recent data is valid and representative.
