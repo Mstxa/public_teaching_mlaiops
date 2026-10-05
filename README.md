@@ -241,8 +241,8 @@ emits the same per-feature PSI metrics used by the alert policy.
 
 Cloud Scheduler job `itcs355-lab4-drift-every-minute` invokes the Cloud Run
 Jobs API on the `* * * * *` schedule in the `Asia/Bangkok` time zone. The
-scheduled request at 18:39:11 ICT on 5 October 2026 returned HTTP 200, and the
-A detector execution logged `ALERT: 1 feature(s) above 0.06: temp_c` while
+scheduled request at 18:39:11 ICT on 5 October 2026 returned HTTP 200. A
+detector execution logged `ALERT: 1 feature(s) above 0.06: temp_c` while
 exiting zero.
 The scheduler has its own identity with only `roles/run.invoker`; the runtime
 identity separately has Storage Object Viewer and Monitoring Metric Writer.
@@ -257,3 +257,5 @@ separate verification confirmed that all four resources were absent.
 The command and verification outputs are recorded in
 [`reports/lab4-make-teardown.txt`](reports/lab4-make-teardown.txt) and
 [`reports/lab4-teardown-verify.txt`](reports/lab4-teardown-verify.txt).
+After teardown, `make cost-report` was also run as required and regenerated
+[`reports/lab3-cost.md`](reports/lab3-cost.md).
