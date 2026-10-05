@@ -157,6 +157,44 @@ order, because the first one is the only step that actually helps.
 - `test_no_machine_leaks_across_splits` catches evaluation leakage in which
   readings from the same machine appear in both training and evaluation data.
 
+### Blocked-bad-commit evidence
+
+Pull request [#2 — Lab 4 bad data contract proof](https://github.com/Mstxa/public_teaching_mlaiops/pull/2)
+deliberately added the unexpected column `unexpected_sensor` and was closed
+without merging. GitHub Actions run
+[`37266898309`](https://github.com/Mstxa/public_teaching_mlaiops/actions/runs/37266898309)
+failed in the `CI/test` job at
+`tests/test_data.py::test_schema_columns_present_and_typed` with:
+
+```text
+AssertionError: unexpected columns: ['unexpected_sensor']
+
+```
+
+The secret scan succeeded, the named data-contract test failed, and the
+dependent `CI/build` job was skipped. The deliberately bad commit therefore
+never reached image build or deployment. The failing job and complete log are
+available at
+[`111625521847`](https://github.com/Mstxa/public_teaching_mlaiops/actions/runs/37266898309/job/111625521847).
+
+![Failing data-contract test blocked the bad commit](reports/evidence/lab4-bad-ci.png)
+
+### Successful staging-deployment evidence
+
+The merge of pull request #3 produced successful main-branch CI run
+[`37325335540`](https://github.com/Mstxa/public_teaching_mlaiops/actions/runs/37325335540)
+for commit `5d2730c9748701212a04eac1ace2005533b91107`. Its successful
+`workflow_run` event triggered CD run
+[`37325956363`](https://github.com/Mstxa/public_teaching_mlaiops/actions/runs/37325956363)
+for the same commit.
+
+The
+[`deploy-staging`](https://github.com/Mstxa/public_teaching_mlaiops/actions/runs/37325956363/job/111816625914)
+job authenticated to Google Cloud through OIDC, built and pushed the serving
+image using the commit SHA, deployed the registered model to staging, and
+smoke-tested three known payloads. Every deployment step completed
+successfully.
+
 ### Drift-threshold justification
 
 The PSI alert threshold is `0.06`. It was calibrated using 30 random
@@ -182,6 +220,16 @@ latency was therefore approximately 2 minutes 32 seconds; the email timestamp
 has one-minute resolution. The incident response and impact assumptions are
 recorded in `docs/lab4-drift-postmortem.md`.
 
+The dashboard captured the `temp_c` PSI value above its `0.06` threshold
+alongside the four serving signals required by the lab:
+
+![Cloud Monitoring dashboard showing injected drift and the five required signals](reports/evidence/lab4-dashboard-drift.png)
+
+The real email notification recorded the firing policy, observed value
+`0.38333`, threshold `0.06`, and notification time:
+
+![Google Cloud email alert for injected temp_c drift](reports/evidence/lab4-alert-email.png)
+
 ### Scheduled-detector evidence
 
 The detector also runs as the Cloud Run Job `itcs355-lab4-drift`, using the
@@ -198,3 +246,14 @@ A detector execution logged `ALERT: 1 feature(s) above 0.06: temp_c` while
 exiting zero.
 The scheduler has its own identity with only `roles/run.invoker`; the runtime
 identity separately has Storage Object Viewer and Monitoring Metric Writer.
+
+### Teardown evidence
+
+After the required screenshots and run links were captured, `make teardown
+LAB=4` removed the Cloud Scheduler job, Cloud Run drift job, Lab 4 alert
+policy, and Lab 4 dashboard. The command completed with exit code `0`; a
+separate verification confirmed that all four resources were absent.
+
+The command and verification outputs are recorded in
+[`reports/lab4-make-teardown.txt`](reports/lab4-make-teardown.txt) and
+[`reports/lab4-teardown-verify.txt`](reports/lab4-teardown-verify.txt).

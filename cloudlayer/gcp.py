@@ -287,11 +287,15 @@ class GcpAdapter(CloudAdapter):
         return promoted
 
     def teardown(self, tags: dict[str, str]) -> list[str]:
-        """Cancel only active Lab 2 jobs; terminal jobs already release compute."""
+        """Remove the resources owned by one explicitly selected lab."""
+        if tags == self.cfg.tags(4):
+            return self._teardown_lab4(tags)
         if tags == self.cfg.tags(3):
             return self._teardown_lab3(tags)
         if tags != self.cfg.tags(2):
-            raise ValueError("This teardown implementation is scoped to Lab 2 or Lab 3")
+            raise ValueError(
+                "This teardown implementation is scoped to Lab 2, Lab 3, or Lab 4"
+            )
         parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
         session = self._vertex_session()
         label_filter = " AND ".join(f"labels.{key}={value}" for key, value in tags.items())
@@ -657,6 +661,120 @@ class GcpAdapter(CloudAdapter):
                 ]
             )
             removed.append(model_name)
+
+        return removed
+
+    def _teardown_lab4(self, tags: dict[str, str]) -> list[str]:
+        """Delete the scheduled detector and its Lab 4 monitoring resources.
+
+        The scheduler is removed first so it cannot start another detector run while
+        teardown is in progress. The staging endpoint and serving model are labelled
+        as Lab 3 because the Lab 4 CD workflow deliberately reuses that adapter path.
+        Exact display names keep this teardown scoped to the resources documented in
+        the Lab 4 evidence.
+        """
+        if tags != self.cfg.tags(4):
+            raise ValueError("Lab 4 teardown requires the exact Lab 4 tags")
+
+        removed: list[str] = []
+        scheduler_job = "itcs355-lab4-drift-every-minute"
+        run_job = "itcs355-lab4-drift"
+
+        scheduler = self._gcloud_json(
+            [
+                "scheduler",
+                "jobs",
+                "describe",
+                scheduler_job,
+                f"--location={self.cfg.region}",
+            ],
+            check=False,
+        )
+        if scheduler is not None:
+            self._gcloud_json(
+                [
+                    "scheduler",
+                    "jobs",
+                    "delete",
+                    scheduler_job,
+                    f"--location={self.cfg.region}",
+                ]
+            )
+            removed.append(
+                f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+                f"/jobs/{scheduler_job}"
+            )
+
+        detector = self._gcloud_json(
+            [
+                "run",
+                "jobs",
+                "describe",
+                run_job,
+                f"--region={self.cfg.region}",
+            ],
+            check=False,
+        )
+        if detector is not None:
+            self._gcloud_json(
+                [
+                    "run",
+                    "jobs",
+                    "delete",
+                    run_job,
+                    f"--region={self.cfg.region}",
+                ]
+            )
+            removed.append(
+                f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+                f"/jobs/{run_job}"
+            )
+
+        removed.extend(self._teardown_lab3(self.cfg.tags(3)))
+
+        session = self._vertex_session()
+        resources = (
+            (
+                "v3",
+                "alertPolicies",
+                "alertPolicies",
+                "Lab 4 - temp_c PSI above 0.06",
+            ),
+            (
+                "v1",
+                "dashboards",
+                "dashboards",
+                "ITCS355 - Lab 4 prediction service",
+            ),
+        )
+        for api_version, collection, response_key, display_name in resources:
+            list_url = (
+                f"https://monitoring.googleapis.com/{api_version}/projects/"
+                f"{self.cfg.project_id}/{collection}"
+            )
+            page_token = ""
+            while True:
+                params: dict[str, Any] = {"pageSize": 1000}
+                if page_token:
+                    params["pageToken"] = page_token
+                response = session.get(list_url, params=params, timeout=60)
+                response.raise_for_status()
+                page = response.json()
+                for resource in page.get(response_key, []):
+                    if resource.get("displayName") != display_name:
+                        continue
+                    resource_name = resource["name"]
+                    delete_url = (
+                        f"https://monitoring.googleapis.com/{api_version}/"
+                        f"{resource_name}"
+                    )
+                    deletion = session.delete(delete_url, timeout=60)
+                    if deletion.status_code != 404:
+                        deletion.raise_for_status()
+                    removed.append(resource_name)
+                page_token = page.get("nextPageToken", "")
+                if not page_token:
+                    break
 
         return removed
 

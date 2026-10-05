@@ -124,7 +124,7 @@ def main() -> int:
         print(f"{r.feature:<22}{r.psi:>10.5f}{r.ks_statistic:>10.5f}  {r.verdict}")
 
     if args.emit:
-        # TODO(Lab 4): implement emit_metric in your adapter, then this reaches
+        # Per-feature PSI is emitted through the cloud adapter so this reaches
         # CloudWatch / Azure Monitor / Cloud Monitoring and your dashboard shows it.
         from cloudlayer.factory import get_adapter
         adapter = get_adapter(config.load(strict=False))
