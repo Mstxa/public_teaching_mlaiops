@@ -31,3 +31,5 @@ instructor/
 
 # Lab 4 generated drift input
 data/current.csv
+
+.venv311/
