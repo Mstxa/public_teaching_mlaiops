@@ -201,6 +201,8 @@ class GcpAdapter(CloudAdapter):
             raise ValueError("Invalid Vertex model version or alias")
         resource = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}/models/{name}@{version}"
         response = self._vertex_session().get(self._vertex_url(resource), timeout=60)
+        if response.status_code == 404:
+            raise LookupError(f"Model version not found: {name}@{version}")
         response.raise_for_status()
         return response.json()
 

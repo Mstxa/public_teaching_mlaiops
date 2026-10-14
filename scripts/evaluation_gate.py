@@ -15,10 +15,53 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from cloudlayer.factory import get_adapter
+from src import config
+
 # TODO(Lab 5): choose and defend these. A margin of zero means noise gets promoted;
 # too large a margin means real improvements never ship.
 MIN_ABSOLUTE = 0.75
 MIN_IMPROVEMENT = 0.002
+
+def read_production_metric(metric_key: str) -> float | None:
+    """Read one metric from the registered production model.
+
+    A missing production alias means this is the first registration.
+    Other errors must propagate because permission and configuration failures
+    must not silently turn into an automatic pass.
+    """
+    cfg = config.load()
+    adapter = get_adapter(cfg)
+
+    try:
+        model = adapter.get_model_version(
+            cfg.model_registry_name,
+            "production",
+        )
+    except LookupError:
+        print("no production model registered")
+        return None
+
+    description = model.get("versionDescription")
+    if not description:
+        raise RuntimeError("Production model has no versionDescription lineage")
+
+    try:
+        lineage = json.loads(description)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "Production model versionDescription is not valid JSON"
+        ) from exc
+
+    if metric_key not in lineage:
+        raise RuntimeError(
+            f"Production model lineage has no {metric_key!r} metric"
+        )
+
+    value = float(lineage[metric_key])
+    version = model.get("versionId", "unknown")
+    print(f"production model version {version}  {metric_key} = {value:.4f}")
+    return value
 
 def finish(decision: str, decision_out: Path | None) -> int:
     """Publish the gate decision.
@@ -42,6 +85,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--metrics", type=Path, required=True)
     ap.add_argument("--metric", default="test_roc_auc")
+    ap.add_argument(
+        "--registry-metric",
+        default="metric_test",
+        help="lineage field containing the production comparison metric",
+    )
     ap.add_argument("--incumbent", type=float, default=None,
                     help="current production score; omit to read from the registry")
     ap.add_argument(
@@ -62,9 +110,10 @@ def main() -> int:
 
     incumbent = args.incumbent
     if incumbent is None:
-        # TODO(Lab 5): read the production version's metric from the registry instead of
-        # assuming there is no incumbent. A first run legitimately has none.
-        print("no incumbent supplied — treating as first registration")
+        incumbent = read_production_metric(args.registry_metric)
+
+    if incumbent is None:
+        print("treating this as the first registration")
         return finish("pass", args.decision_out)
 
     delta = candidate - incumbent
