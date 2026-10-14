@@ -235,24 +235,36 @@ class GcpAdapter(CloudAdapter):
         model_resource = f"{parent}/models/{name}"
         session = self._vertex_session()
         existing = session.get(self._vertex_url(model_resource), timeout=60)
-        if existing.status_code == 200:
-            model = existing.json()
-            if json.loads(model.get("versionDescription", "{}")) != lineage:
-                raise ValueError("Model ID already exists with different lineage; choose a new ID")
-            return str(model["versionId"])
-        if existing.status_code != 404:
+        parent_exists = existing.status_code == 200
+
+        if parent_exists:
+            current = existing.json()
+            try:
+                current_lineage = json.loads(
+                    current.get("versionDescription", "{}")
+                )
+            except json.JSONDecodeError:
+                current_lineage = {}
+
+            # Retrying the same registration must be idempotent.
+            if current_lineage == lineage:
+                return str(current["versionId"])
+        elif existing.status_code != 404:
             existing.raise_for_status()
 
-        body = {
-            "modelId": name,
-            "model": {
-                "displayName": name,
-                "artifactUri": artifact_uri,
-                "containerSpec": {"imageUri": image_uri},
-                "versionDescription": json.dumps(lineage, sort_keys=True),
-                "labels": self.cfg.tags(2),
-            },
+        model_payload = {
+            "displayName": name,
+            "artifactUri": artifact_uri,
+            "containerSpec": {"imageUri": image_uri},
+            "versionDescription": json.dumps(lineage, sort_keys=True),
+            "labels": self.cfg.tags(5),
         }
+
+        body = {"model": model_payload}
+        if parent_exists:
+            body["parentModel"] = model_resource
+        else:
+            body["modelId"] = name
         response = session.post(self._vertex_url(f"{parent}/models:upload"), json=body, timeout=60)
         response.raise_for_status()
         operation_name = response.json()["name"]
