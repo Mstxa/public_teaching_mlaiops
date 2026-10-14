@@ -32,10 +32,14 @@ ENV PYTHONUNBUFFERED=1 \
 
 COPY --from=builder /install /usr/local
 WORKDIR /app
-RUN mkdir -p /app/mlruns && chown -R runner:runner /app/mlruns
+RUN mkdir -p /app/mlruns /app/data/raw /app/reports \
+    && chown -R runner:runner /app
 COPY --chown=runner:runner src/ ./src/
 COPY --chown=runner:runner cloudlayer/ ./cloudlayer/
 COPY --chown=runner:runner scripts/ ./scripts/
+COPY --chown=runner:runner service/ ./service/
+COPY --chown=runner:runner evals/ ./evals/
+COPY --chown=runner:runner tests/ ./tests/
 
 USER runner
 
