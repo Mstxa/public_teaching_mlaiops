@@ -20,6 +20,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 MIN_ABSOLUTE = 0.75
 MIN_IMPROVEMENT = 0.002
 
+def finish(decision: str, decision_out: Path | None) -> int:
+    """Publish the gate decision.
+
+    Local mode exits non-zero on failure. Pipeline mode writes a decision
+    parameter and exits zero so the DAG can reach its conditional branch.
+    """
+    if decision_out is not None:
+        decision_out.parent.mkdir(parents=True, exist_ok=True)
+        decision_out.write_text(decision + "\n")
+        print(f"wrote gate decision to {decision_out}")
+
+    print(f"GATE {decision.upper()}")
+
+    if decision == "pass":
+        return 0
+
+    return 0 if decision_out is not None else 1
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -27,6 +44,12 @@ def main() -> int:
     ap.add_argument("--metric", default="test_roc_auc")
     ap.add_argument("--incumbent", type=float, default=None,
                     help="current production score; omit to read from the registry")
+    ap.add_argument(
+        "--decision-out",
+        type=Path,
+        default=None,
+        help="write pass/fail for a pipeline conditional; failure exits zero in this mode",
+    )
     args = ap.parse_args()
 
     payload = json.loads(args.metrics.read_text())
@@ -34,25 +57,23 @@ def main() -> int:
     print(f"candidate {args.metric} = {candidate:.4f}")
 
     if candidate < MIN_ABSOLUTE:
-        print(f"GATE FAIL  below absolute floor {MIN_ABSOLUTE}")
-        return 1
+        print(f"below absolute floor {MIN_ABSOLUTE}")
+        return finish("fail", args.decision_out)
 
     incumbent = args.incumbent
     if incumbent is None:
         # TODO(Lab 5): read the production version's metric from the registry instead of
         # assuming there is no incumbent. A first run legitimately has none.
         print("no incumbent supplied — treating as first registration")
-        print("GATE PASS")
-        return 0
+        return finish("pass", args.decision_out)
 
     delta = candidate - incumbent
     print(f"incumbent {incumbent:.4f}  delta {delta:+.4f}  required {MIN_IMPROVEMENT:+.4f}")
     if delta < MIN_IMPROVEMENT:
-        print("GATE FAIL  improvement within noise; not registering")
-        return 1
+        print("improvement within noise; not registering")
+        return finish("fail", args.decision_out)
 
-    print("GATE PASS")
-    return 0
+    return finish("pass", args.decision_out)
 
 
 if __name__ == "__main__":
