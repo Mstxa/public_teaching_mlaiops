@@ -33,3 +33,6 @@ instructor/
 data/current.csv
 
 .venv311/
+
+tmp/
+
