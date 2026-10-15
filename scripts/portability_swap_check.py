@@ -11,6 +11,7 @@ writing about: the leak was in configuration or in an assumption, not in an impo
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -24,7 +25,14 @@ from src import config
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--second-provider", required=True, choices=["aws", "azure", "gcp"])
+    ap.add_argument("--blob-uri", default=os.environ.get("SECOND_BLOB_URI"))
+    ap.add_argument("--endpoint", default=os.environ.get("SECOND_ENDPOINT"))
     args = ap.parse_args()
+
+    if not args.blob_uri:
+        ap.error("provide --blob-uri or SECOND_BLOB_URI for the second provider")
+    if not args.endpoint:
+        ap.error("provide --endpoint or SECOND_ENDPOINT for the second provider")
 
     primary = config.load(strict=False)
     if primary.provider == args.second_provider:
@@ -36,7 +44,11 @@ def main() -> int:
 
     # Same Config object, different adapter. If your code needs more than this to switch,
     # say so in the write-up — that IS the finding.
-    swapped = config.Config(**{**primary.__dict__, "provider": args.second_provider})
+    swapped = config.Config(**{
+        **primary.__dict__,
+        "provider": args.second_provider,
+        "blob_uri": args.blob_uri,
+    })
     adapter = get_adapter(swapped)
 
     results: dict[str, str] = {}
@@ -44,14 +56,19 @@ def main() -> int:
         probe = Path(tmp) / "probe.txt"
         probe.write_text("itcs355 portability probe\n")
 
+        uploaded_uri = ""
+        downloaded = Path(tmp) / "back.txt"
         for name, call in (
-            ("upload", lambda: adapter.upload(str(probe), "portability/probe.txt")),
-            ("download", lambda: adapter.download(
-                f"{swapped.blob_uri}/portability/probe.txt", str(Path(tmp) / "back.txt"))),
-            ("invoke", lambda: adapter.invoke(swapped.project_id, {"rows": []})),
+            ("upload", lambda: adapter.upload(str(probe), "probe.txt")),
+            ("download", lambda: adapter.download(uploaded_uri, str(downloaded))),
+            ("invoke", lambda: adapter.invoke(args.endpoint, {"rows": []})),
         ):
             try:
-                call()
+                value = call()
+                if name == "upload":
+                    uploaded_uri = str(value)
+                if name == "download" and downloaded.read_text() != probe.read_text():
+                    raise ValueError("downloaded probe does not match uploaded content")
                 results[name] = "PASS"
             except NotImplementedError:
                 results[name] = "NOT IMPLEMENTED"
