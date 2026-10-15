@@ -302,13 +302,15 @@ class GcpAdapter(CloudAdapter):
 
     def teardown(self, tags: dict[str, str]) -> list[str]:
         """Remove the resources owned by one explicitly selected lab."""
+        if tags == self.cfg.tags(5):
+            return self._teardown_lab5(tags)
         if tags == self.cfg.tags(4):
             return self._teardown_lab4(tags)
         if tags == self.cfg.tags(3):
             return self._teardown_lab3(tags)
         if tags != self.cfg.tags(2):
             raise ValueError(
-                "This teardown implementation is scoped to Lab 2, Lab 3, or Lab 4"
+                "This teardown implementation is scoped to Lab 2, Lab 3, Lab 4, or Lab 5"
             )
         parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
         session = self._vertex_session()
@@ -675,6 +677,76 @@ class GcpAdapter(CloudAdapter):
                 ]
             )
             removed.append(model_name)
+
+        return removed
+
+    def _teardown_lab5(self, tags: dict[str, str]) -> list[str]:
+        """Delete only resources and objects owned by the Lab 5 pipeline.
+
+        The bucket, training identity, and container images are shared with earlier
+        labs, so teardown deliberately keeps them. A running pipeline is cancelled
+        on the first pass and can be deleted by a later verification pass after it
+        reaches a terminal state.
+        """
+        if tags != self.cfg.tags(5):
+            raise ValueError("Lab 5 teardown requires the exact Lab 5 tags")
+
+        removed = self._teardown_lab3(tags)
+        parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+        label_filter = " AND ".join(
+            f"labels.{key}={value}" for key, value in tags.items()
+        )
+        terminal = {
+            "PIPELINE_STATE_SUCCEEDED",
+            "PIPELINE_STATE_FAILED",
+            "PIPELINE_STATE_CANCELLED",
+        }
+        session = self._vertex_session()
+        page_token = ""
+        while True:
+            params = {"filter": label_filter, "pageSize": 100}
+            if page_token:
+                params["pageToken"] = page_token
+            response = session.get(
+                self._vertex_url(f"{parent}/pipelineJobs"),
+                params=params,
+                timeout=60,
+            )
+            response.raise_for_status()
+            page = response.json()
+            for job in page.get("pipelineJobs", []):
+                job_name = job["name"]
+                if job.get("state") not in terminal:
+                    cancellation = session.post(
+                        self._vertex_url(f"{job_name}:cancel"),
+                        json={},
+                        timeout=60,
+                    )
+                    if cancellation.status_code != 404:
+                        cancellation.raise_for_status()
+                    removed.append(job_name)
+                    continue
+
+                deletion = session.delete(
+                    self._vertex_url(job_name),
+                    timeout=60,
+                )
+                if deletion.status_code != 404:
+                    deletion.raise_for_status()
+                removed.append(job_name)
+            page_token = page.get("nextPageToken", "")
+            if not page_token:
+                break
+
+        bucket_name, base_prefix = _parse_gs_uri(self.cfg.blob_uri)
+        lab5_prefix = "/".join(
+            part for part in (base_prefix, "lab5/") if part
+        )
+        client = storage.Client(project=self.cfg.project_id)
+        blobs = list(client.list_blobs(bucket_name, prefix=lab5_prefix))
+        if blobs:
+            client.bucket(bucket_name).delete_blobs(blobs)
+            removed.append(f"gs://{bucket_name}/{lab5_prefix}")
 
         return removed
 
