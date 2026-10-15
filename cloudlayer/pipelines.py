@@ -6,7 +6,6 @@ in Lab 5 Task 4.
 
 Implement ONE compile function, for your provider.
 """
-from __future__ import annotations
 
 import os
 import re
@@ -131,15 +130,229 @@ def compile_azure(spec: dict[str, Any]):
     raise NotImplementedError("TODO Lab 5: build an azure.ai.ml pipeline job")
 
 
-def compile_gcp(spec: dict[str, Any]):
-    """Vertex AI Pipelines.
+def compile_gcp(spec: dict[str, Any]) -> str:
+    """Compile the neutral DAG into a Vertex-compatible KFP v2 JSON file."""
+    from kfp import compiler, dsl
 
-    Kubeflow Pipelines underneath: steps become container components, conditions become
-    dsl.If blocks. The compiled artifact is a JSON file you submit, so your build step
-    produces a file rather than an object — different from the other two.
-    """
-    raise NotImplementedError("TODO Lab 5: compile a KFP pipeline and submit to Vertex")
+    validate_spec(spec)
 
+    parameters = spec.get("parameters", {})
+    required_parameters = (
+        "training_image",
+        "serving_image",
+        "git_commit",
+        "staging_instance",
+    )
+    unresolved = [
+        name
+        for name in required_parameters
+        if not parameters.get(name) or "${" in str(parameters[name])
+    ]
+    if unresolved:
+        raise RuntimeError(
+            "Set pipeline environment values before compiling: "
+            + ", ".join(unresolved)
+        )
+
+    digest_pattern = r".+@sha256:[0-9a-f]{64}"
+    for name in ("training_image", "serving_image"):
+        if not re.fullmatch(digest_pattern, str(parameters[name])):
+            raise ValueError(f"{name} must be a digest-pinned container image")
+
+    capability_names = (
+        "CLOUD_PROVIDER",
+        "PROJECT_ID",
+        "REGION",
+        "BLOB_URI",
+        "CONTAINER_REGISTRY",
+        "MLFLOW_TRACKING_URI",
+        "MODEL_REGISTRY_NAME",
+        "IDENTITY_REF",
+    )
+    missing = [name for name in capability_names if not os.environ.get(name)]
+    if missing:
+        raise RuntimeError(
+            "Missing pipeline capability environment: " + ", ".join(missing)
+        )
+
+    runtime_env = {
+        name: os.environ[name]
+        for name in capability_names
+    }
+    steps = {step["name"]: step for step in spec["steps"]}
+
+    def render(
+        command: list[Any],
+        replacements: dict[str, Any],
+    ) -> list[Any]:
+        return [replacements.get(item, item) for item in command]
+
+    @dsl.container_component
+    def ingest_component(
+        raw_data: dsl.Output[dsl.Dataset],
+    ):
+        return dsl.ContainerSpec(
+            image=steps["ingest"]["image"],
+            command=render(
+                steps["ingest"]["command"],
+                {
+                    "{{outputs.raw_data}}": raw_data.path,
+                },
+            ),
+        )
+
+    @dsl.container_component
+    def validate_component(
+        raw_data: dsl.Input[dsl.Dataset],
+    ):
+        return dsl.ContainerSpec(
+            image=steps["validate"]["image"],
+            command=render(
+                steps["validate"]["command"],
+                {
+                    "{{inputs.raw_data}}": raw_data.path,
+                },
+            ),
+        )
+
+    @dsl.container_component
+    def train_component(
+        raw_data: dsl.Input[dsl.Dataset],
+        model: dsl.Output[dsl.Model],
+        metrics: dsl.Output[dsl.Metrics],
+    ):
+        return dsl.ContainerSpec(
+            image=steps["train"]["image"],
+            command=render(
+                steps["train"]["command"],
+                {
+                    "{{inputs.raw_data}}": raw_data.path,
+                    "{{outputs.model}}": model.path,
+                    "{{outputs.metrics}}": metrics.path,
+                },
+            ),
+        )
+
+    @dsl.container_component
+    def evaluate_component(
+        metrics: dsl.Input[dsl.Metrics],
+        gate_decision: dsl.OutputPath(str),
+    ):
+        return dsl.ContainerSpec(
+            image=steps["evaluate"]["image"],
+            command=render(
+                steps["evaluate"]["command"],
+                {
+                    "{{inputs.metrics}}": metrics.path,
+                    "{{outputs.gate_decision}}": gate_decision,
+                },
+            ),
+        )
+
+    @dsl.container_component
+    def register_component(
+        model: dsl.Input[dsl.Model],
+        metrics: dsl.Input[dsl.Metrics],
+        version: dsl.Output[dsl.Artifact],
+    ):
+        return dsl.ContainerSpec(
+            image=steps["register"]["image"],
+            command=render(
+                steps["register"]["command"],
+                {
+                    "{{inputs.model}}": model.path,
+                    "{{inputs.metrics}}": metrics.path,
+                    "{{parameters.training_image}}": parameters[
+                        "training_image"
+                    ],
+                    "{{runtime.pipeline_job_name}}": (
+                        dsl.PIPELINE_JOB_NAME_PLACEHOLDER
+                    ),
+                    "{{parameters.git_commit}}": parameters["git_commit"],
+                    "{{outputs.version}}": version.path,
+                },
+            ),
+        )
+
+    @dsl.container_component
+    def deploy_component(
+        version: dsl.Input[dsl.Artifact],
+        deployment: dsl.Output[dsl.Artifact],
+    ):
+        return dsl.ContainerSpec(
+            image=steps["deploy_staging"]["image"],
+            command=render(
+                steps["deploy_staging"]["command"],
+                {
+                    "{{inputs.version}}": version.path,
+                    "{{parameters.serving_image}}": parameters[
+                        "serving_image"
+                    ],
+                    "{{parameters.staging_instance}}": parameters[
+                        "staging_instance"
+                    ],
+                    "{{outputs.deployment}}": deployment.path,
+                },
+            ),
+        )
+
+    def configure(task):
+        task.set_caching_options(False)
+        for name, value in runtime_env.items():
+            task.set_env_variable(name, value)
+        return task
+
+    @dsl.pipeline(name=spec["name"])
+    def pipeline():
+        ingest_task = configure(
+            ingest_component()
+        ).set_display_name("ingest")
+
+        validate_task = configure(
+            validate_component(
+                raw_data=ingest_task.outputs["raw_data"],
+            )
+        ).set_display_name("validate")
+
+        train_task = configure(
+            train_component(
+                raw_data=ingest_task.outputs["raw_data"],
+            )
+        ).after(validate_task).set_display_name("train")
+
+        evaluate_task = configure(
+            evaluate_component(
+                metrics=train_task.outputs["metrics"],
+            )
+        ).set_display_name("evaluate")
+
+        with dsl.If(
+            evaluate_task.outputs["gate_decision"] == "pass",
+            name="evaluation-gate-pass",
+        ):
+            register_task = configure(
+                register_component(
+                    model=train_task.outputs["model"],
+                    metrics=train_task.outputs["metrics"],
+                )
+            ).set_display_name("register")
+
+            configure(
+                deploy_component(
+                    version=register_task.outputs["version"],
+                )
+            ).set_display_name("deploy-staging")
+
+    output = Path("tmp/vertex-pipeline.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    compiler.Compiler().compile(
+        pipeline_func=pipeline,
+        package_path=str(output),
+    )
+
+    print(f"Compiled Vertex pipeline: {output}")
+    return str(output)
 
 COMPILERS = {"aws": compile_aws, "azure": compile_azure, "gcp": compile_gcp}
 
