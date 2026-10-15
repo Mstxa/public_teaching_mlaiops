@@ -1,53 +1,126 @@
-# Lab 5 — pipeline as a neutral DAG.
-#
-# This file describes WHAT runs. cloudlayer/pipelines.py compiles it into SageMaker
-# Pipelines, Azure ML Pipelines, or Vertex AI Pipelines. Keeping the DAG here rather than
-# in provider SDK calls is what makes the pipeline portable, and it is why every step is
-# a container rather than a function.
+# Lab 5 — provider-neutral managed training DAG.
 
 name: itcs355-training-pipeline
-schedule: "0 2 * * 0"          # TODO(Lab 5): justify this in your README, or change it
+schedule: "0 2 * * 0"
+
+parameters:
+  training_image: "${TRAINING_IMAGE_URI}"
+  serving_image: "${SERVING_IMAGE_URI}"
+  git_commit: "${GIT_COMMIT}"
+  train_instance: "${TRAIN_INSTANCE}"
+  staging_instance: "n1-standard-2"
 
 steps:
   - name: ingest
-    image: "${CONTAINER_REGISTRY}/itcs355:${IMAGE_TAG}"
-    command: ["python", "scripts/make_dataset.py"]
-    outputs: [raw_data]
+    image: "${TRAINING_IMAGE_URI}"
+    command:
+      - python
+      - scripts/make_dataset.py
+      - --out
+      - "{{outputs.raw_data}}"
+    outputs:
+      raw_data: dataset
 
   - name: validate
-    image: "${CONTAINER_REGISTRY}/itcs355:${IMAGE_TAG}"
-    command: ["pytest", "-q", "tests/test_data.py"]
+    image: "${TRAINING_IMAGE_URI}"
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p data/raw &&
+        cp "$1" data/raw/sensors.csv &&
+        pytest -q tests/test_data.py
+      - sh
+      - "{{inputs.raw_data}}"
+    inputs:
+      raw_data: ingest.raw_data
     depends_on: [ingest]
     on_failure: abort
-    # Aborting here is the point. A pipeline that trains on data failing its own contract
-    # produces a model nobody should trust, and it will do so silently.
 
   - name: train
-    image: "${CONTAINER_REGISTRY}/itcs355:${IMAGE_TAG}"
-    command: ["python", "-m", "src.train", "--metrics-out", "/outputs/metrics.json"]
+    image: "${TRAINING_IMAGE_URI}"
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p data/raw &&
+        cp "$1" data/raw/sensors.csv &&
+        python -m src.train
+        --model-out "$2"
+        --metrics-out "$3"
+      - sh
+      - "{{inputs.raw_data}}"
+      - "{{outputs.model}}"
+      - "{{outputs.metrics}}"
+    inputs:
+      raw_data: ingest.raw_data
     depends_on: [validate]
     instance: "${TRAIN_INSTANCE}"
     spot: true
-    outputs: [model, metrics]
+    outputs:
+      model: model
+      metrics: metrics
 
   - name: evaluate
-    image: "${CONTAINER_REGISTRY}/itcs355:${IMAGE_TAG}"
-    command: ["python", "scripts/evaluation_gate.py", "--metrics", "/outputs/metrics.json"]
+    image: "${TRAINING_IMAGE_URI}"
+    command:
+      - python
+      - scripts/evaluation_gate.py
+      - --metrics
+      - "{{inputs.metrics}}"
+      - --decision-out
+      - "{{outputs.gate_decision}}"
+    inputs:
+      metrics: train.metrics
     depends_on: [train]
-    outputs: [gate_decision]
+    outputs:
+      gate_decision: parameter
 
   - name: register
-    image: "${CONTAINER_REGISTRY}/itcs355:${IMAGE_TAG}"
-    command: ["python", "scripts/register.py"]
+    image: "${TRAINING_IMAGE_URI}"
+    command:
+      - python
+      - scripts/register.py
+      - --model
+      - "{{inputs.model}}"
+      - --metrics
+      - "{{inputs.metrics}}"
+      - --training-image
+      - "{{parameters.training_image}}"
+      - --training-job-id
+      - "{{runtime.pipeline_job_name}}"
+      - --git-commit
+      - "{{parameters.git_commit}}"
+      - --version-out
+      - "{{outputs.version}}"
+    inputs:
+      model: train.model
+      metrics: train.metrics
     depends_on: [evaluate]
-    condition: "gate_decision == 'pass'"
-    # TODO(Lab 5): a pipeline that registers unconditionally has no gate. The condition
-    # must be real, and the grader will try to make it fail.
+    condition: "evaluate.gate_decision == 'pass'"
+    outputs:
+      version: artifact
 
   - name: deploy_staging
-    image: "${CONTAINER_REGISTRY}/itcs355:${IMAGE_TAG}"
-    command: ["python", "scripts/deploy.py", "--target", "staging"]
+    image: "${TRAINING_IMAGE_URI}"
+    command:
+      - python
+      - scripts/deploy.py
+      - --version-file
+      - "{{inputs.version}}"
+      - --serving-image
+      - "{{parameters.serving_image}}"
+      - --target
+      - staging
+      - --instance
+      - "{{parameters.staging_instance}}"
+      - --out
+      - "{{outputs.deployment}}"
+    inputs:
+      version: register.version
     depends_on: [register]
+    outputs:
+      deployment: artifact
 
 tags:
   course: itcs355
