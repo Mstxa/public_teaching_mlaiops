@@ -1,0 +1,25 @@
+=== LAB 5 SCOPED IDENTITIES ===
+TRAINING=itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+SERVING=itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com
+CI=itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com
+
+=== PROJECT ROLES: itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com ===
+roles/aiplatform.user
+roles/monitoring.metricWriter
+
+=== PROJECT ROLES: itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com ===
+roles/logging.logWriter
+roles/monitoring.metricWriter
+
+=== PROJECT ROLES: itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com ===
+roles/aiplatform.user
+
+=== BUCKET ROLES ===
+serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com roles/storage.bucketViewer
+serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com roles/storage.objectAdmin
+serviceAccount:itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com roles/storage.objectViewer
+serviceAccount:itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com roles/storage.objectViewer
+
+=== ARTIFACT REGISTRY ROLES ===
+serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com roles/artifactregistry.reader
+serviceAccount:itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com roles/artifactregistry.writer

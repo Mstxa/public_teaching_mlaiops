@@ -19,6 +19,7 @@ def _adapter(monkeypatch, *, state: str, blobs: list[object]):
     )
     adapter = gcp.GcpAdapter(cfg)
     monkeypatch.setattr(adapter, "_teardown_lab3", Mock(return_value=[]))
+    monkeypatch.setattr(adapter, "_gcloud_json", Mock(return_value={}))
 
     list_response = Mock()
     list_response.json.return_value = {
@@ -50,7 +51,9 @@ def test_lab5_teardown_deletes_terminal_pipeline_and_prefix(monkeypatch):
 
     session.delete.assert_called_once()
     session.post.assert_not_called()
+    assert adapter._gcloud_json.call_count == 2
     client.bucket.return_value.delete_blobs.assert_called_once_with([blob])
+    assert removed[0].endswith("/jobs/itcs355-lab5-retrain-weekly")
     assert "pipeline/1" in removed
     assert removed[-1].endswith("/base/lab5/")
 
@@ -66,4 +69,6 @@ def test_lab5_teardown_cancels_nonterminal_pipeline(monkeypatch):
 
     session.post.assert_called_once()
     session.delete.assert_not_called()
-    assert removed == ["pipeline/1"]
+    assert adapter._gcloud_json.call_count == 2
+    assert removed[0].endswith("/jobs/itcs355-lab5-retrain-weekly")
+    assert removed[-1] == "pipeline/1"

@@ -1,0 +1,10 @@
+description: ITCS355 Lab 5 weekly managed retraining pipeline
+httpTarget:
+  httpMethod: POST
+  oauthToken:
+    serviceAccountEmail: itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com
+  uri: https://asia-southeast1-aiplatform.googleapis.com/v1/projects/itcs355-6688121/locations/asia-southeast1/pipelineJobs
+name: projects/itcs355-6688121/locations/asia-southeast1/jobs/itcs355-lab5-retrain-weekly
+schedule: 0 2 * * 0
+state: ENABLED
+timeZone: Asia/Bangkok

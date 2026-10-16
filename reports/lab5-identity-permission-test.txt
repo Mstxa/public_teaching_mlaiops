@@ -1,0 +1,78 @@
+=== BEFORE REMOVAL: SHOULD SUCCEED ===
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+lab5 serving identity permission probe
+BEFORE_EXIT=0
+=== REMOVE OBJECT VIEWER ===
+bindings:
+- members:
+  - serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+  role: roles/storage.bucketViewer
+- members:
+  - projectEditor:itcs355-6688121
+  - projectOwner:itcs355-6688121
+  role: roles/storage.legacyBucketOwner
+- members:
+  - projectViewer:itcs355-6688121
+  role: roles/storage.legacyBucketReader
+- members:
+  - projectEditor:itcs355-6688121
+  - projectOwner:itcs355-6688121
+  role: roles/storage.legacyObjectOwner
+- members:
+  - projectViewer:itcs355-6688121
+  role: roles/storage.legacyObjectReader
+- members:
+  - serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+  role: roles/storage.objectAdmin
+- members:
+  - serviceAccount:itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com
+  - serviceAccount:itcs355-lab4-drift@itcs355-6688121.iam.gserviceaccount.com
+  role: roles/storage.objectViewer
+etag: CAg=
+kind: storage#policy
+resourceId: projects/_/buckets/itcs355-6688121-mlops
+version: 1
+=== AFTER REMOVAL: SHOULD FAIL ===
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+ERROR: (gcloud.storage.cat) HTTPError 403: itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com does not have storage.objects.get access to the Google Cloud Storage object. Permission 'storage.objects.get' denied on resource '//storage.googleapis.com/projects/_/buckets/itcs355-6688121-mlops/objects/itcs355/lab5/identity-probe.txt' (or it may not exist). This command is authenticated as supitsara0841@gmail.com which is the active account specified by the [core/account] property. Impersonation is used to impersonate itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com.
+REMOVED_EXIT=1
+=== RESTORE OBJECT VIEWER ===
+bindings:
+- members:
+  - serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+  role: roles/storage.bucketViewer
+- members:
+  - projectEditor:itcs355-6688121
+  - projectOwner:itcs355-6688121
+  role: roles/storage.legacyBucketOwner
+- members:
+  - projectViewer:itcs355-6688121
+  role: roles/storage.legacyBucketReader
+- members:
+  - projectEditor:itcs355-6688121
+  - projectOwner:itcs355-6688121
+  role: roles/storage.legacyObjectOwner
+- members:
+  - projectViewer:itcs355-6688121
+  role: roles/storage.legacyObjectReader
+- members:
+  - serviceAccount:itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+  role: roles/storage.objectAdmin
+- members:
+  - serviceAccount:itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com
+  - serviceAccount:itcs355-lab4-drift@itcs355-6688121.iam.gserviceaccount.com
+  - serviceAccount:itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com
+  role: roles/storage.objectViewer
+etag: CAk=
+kind: storage#policy
+resourceId: projects/_/buckets/itcs355-6688121-mlops
+version: 1
+=== AFTER RESTORE: SHOULD SUCCEED ===
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [itcs355-lab5-serve@itcs355-6688121.iam.gserviceaccount.com].
+lab5 serving identity permission probe
+RESTORED_EXIT=0
+SUMMARY BEFORE=0 REMOVED=1 RESTORED=0

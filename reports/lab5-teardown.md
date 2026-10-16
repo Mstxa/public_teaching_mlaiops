@@ -48,3 +48,40 @@ screenshots provide an independent manual check:
 
 The delayed billing check remains separate follow-up evidence because provider
 billing reports are not real-time.
+
+## Final scheduled-run teardown — 2026-10-16
+
+After the weekly schedule was created and invoked, Cloud Scheduler successfully
+submitted Vertex Pipeline Job `8732878800192274432` as the CI identity. The
+pipeline ran as the scoped training identity and reached
+`PIPELINE_STATE_SUCCEEDED`. Its ingest, validate, train, and evaluate
+components succeeded. The conditional downstream branch was
+`NOT_TRIGGERED`, demonstrating that the scheduled path did not bypass the
+evaluation gate.
+
+The updated `make teardown LAB=5` removes the exact Cloud Scheduler job before
+deleting pipeline jobs and the Lab 5 storage prefix. The final teardown removed:
+
+- Cloud Scheduler job `itcs355-lab5-retrain-weekly`;
+- Vertex Pipeline Job `8732878800192274432`;
+- objects under `gs://itcs355-6688121-mlops/itcs355/lab5/`.
+
+Independent post-deletion checks confirmed:
+
+- Scheduler describe exited `1` because the job no longer exists;
+- the Vertex PipelineJob API returned HTTP `404`;
+- recursive Lab 5 storage listing exited `1` because no objects matched;
+- combined verification result: `LAB5_TEARDOWN_VERIFY=PASS`.
+
+Final command evidence is stored in:
+
+- `reports/lab5-final-teardown.txt`;
+- `reports/lab5-final-teardown-verify.txt`;
+- `reports/lab5-scheduled-pipeline-run.txt`.
+
+Final manual console evidence is stored in:
+
+- `reports/evidence/lab5-gcp-pipelines-final-empty.png`, showing an empty
+  Pipeline Runs table in `asia-southeast1`;
+- `reports/evidence/lab5-gcp-scheduler-final-empty.png`, showing that no Cloud
+  Scheduler jobs remain.

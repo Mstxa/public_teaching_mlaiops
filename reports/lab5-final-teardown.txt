@@ -1,0 +1,4 @@
+python -c "from src import config; from cloudlayer.factory import get_adapter; \
+cfg=config.load(); print(get_adapter(cfg).teardown(cfg.tags(5)))"
+['projects/itcs355-6688121/locations/asia-southeast1/jobs/itcs355-lab5-retrain-weekly', 'projects/475085312620/locations/asia-southeast1/pipelineJobs/8732878800192274432', 'gs://itcs355-6688121-mlops/itcs355/lab5/']
+TEARDOWN_EXIT=0

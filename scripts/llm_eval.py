@@ -225,7 +225,7 @@ def generate_live(golden: list[dict]) -> list[dict]:
     adapter = get_adapter(config.load())
     rows = []
     for case in golden:
-        result = adapter.generate(case["prompt"], {"max_output_tokens": 200})
+        result = adapter.generate(case["prompt"], {"max_output_tokens": 64})
         rows.append({"id": case["id"], **result})
     return rows
 

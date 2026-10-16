@@ -692,6 +692,32 @@ class GcpAdapter(CloudAdapter):
             raise ValueError("Lab 5 teardown requires the exact Lab 5 tags")
 
         removed = self._teardown_lab3(tags)
+        scheduler_job = "itcs355-lab5-retrain-weekly"
+        scheduler = self._gcloud_json(
+            [
+                "scheduler",
+                "jobs",
+                "describe",
+                scheduler_job,
+                f"--location={self.cfg.region}",
+            ],
+            check=False,
+        )
+        if scheduler is not None:
+            self._gcloud_json(
+                [
+                    "scheduler",
+                    "jobs",
+                    "delete",
+                    scheduler_job,
+                    f"--location={self.cfg.region}",
+                ]
+            )
+            removed.append(
+                f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
+                f"/jobs/{scheduler_job}"
+            )
+
         parent = f"projects/{self.cfg.project_id}/locations/{self.cfg.region}"
         label_filter = " AND ".join(
             f"labels.{key}={value}" for key, value in tags.items()

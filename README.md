@@ -259,3 +259,43 @@ The command and verification outputs are recorded in
 [`reports/lab4-teardown-verify.txt`](reports/lab4-teardown-verify.txt).
 After teardown, `make cost-report` was also run as required and regenerated
 [`reports/lab3-cost.md`](reports/lab3-cost.md).
+
+## Lab 5 — Scheduled retraining and operating evidence
+
+### Retraining trigger comparison
+
+| Strategy | When it is right for this machine-failure system | How it fails for this system |
+|---|---|---|
+| Fixed schedule | A weekly run is predictable, easy to budget, and appropriate while new labelled maintenance outcomes arrive steadily but not continuously. It also gives operators a regular review point before promotion. | It may retrain when too little new data exists, wasting compute, or wait almost a week after a sudden process change. A schedule alone does not prove that the new model is better. |
+| Data-volume threshold | Retrain after enough new machine cycles and confirmed failure labels accumulate to change the training distribution meaningfully. This avoids spending money on nearly identical weekly datasets. | High-volume machines can dominate the threshold while rare machine types remain stale. Delayed maintenance labels also make row count look sufficient before the ground truth is mature. |
+| Drift-triggered | Retrain when monitored temperature, vibration, service-age, or prediction distributions move beyond validated PSI thresholds and enough new labels are available. This can react sooner than the weekly schedule to a genuine operating change. | A broken sensor or corrupted upstream unit conversion can trigger training on bad data. Automatic promotion could then replace a working model with a model trained on corruption faster than a fixed schedule would. |
+
+### Chosen strategy
+
+The implemented trigger is a fixed weekly schedule: Sunday at 02:00
+`Asia/Bangkok` (`0 2 * * 0`). Cloud Scheduler authenticates as the scoped CI
+identity `itcs355-lab4-deploy`, creates a Vertex AI PipelineJob, and delegates
+runtime execution to `itcs355-lab2-train`. The pipeline still requires its
+evaluation gate before register or deploy, so scheduling does not bypass the
+quality decision.
+
+The worst case is a real distribution shift immediately after the weekly run:
+the model can remain stale for nearly seven days. This is accepted for the lab
+because spend is predictable and maintenance labels arrive slowly. In
+production I would combine the weekly backstop with a data-volume readiness
+check and a drift alert for human review. I would not allow drift alone to
+auto-promote, because corrupted sensor data could rapidly retrain and replace
+a healthy model.
+
+### Lab 5 evidence
+
+- Scoped identities and permission-removal experiment:
+  [`reports/lab5-identities.md`](reports/lab5-identities.md)
+- Scheduler configuration:
+  [`reports/lab5-scheduler-created.txt`](reports/lab5-scheduler-created.txt)
+- Scheduler-triggered pipeline:
+  [`reports/lab5-scheduled-pipeline-run.txt`](reports/lab5-scheduled-pipeline-run.txt)
+- Ten-case LLM gate and guardrail failure:
+  [`reports/lab5-llm-gate.md`](reports/lab5-llm-gate.md)
+- Token calculation and budget defence:
+  [`reports/lab5-token-cost.md`](reports/lab5-token-cost.md)

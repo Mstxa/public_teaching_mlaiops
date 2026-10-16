@@ -1,0 +1,45 @@
+LAB5_PIPELINE_COUNT=1
+---
+NAME= 8732878800192274432
+DISPLAY_NAME= itcs355-lab5-weekly-retrain
+STATE= PIPELINE_STATE_RUNNING
+CREATE_TIME= 2026-10-16T06:28:05.552513Z
+SERVICE_ACCOUNT= itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+PIPELINE_ROOT= gs://itcs355-6688121-mlops/itcs355/lab5/scheduled-pipeline-root
+LABELS= {'course': 'itcs355', 'student': 'itcs355-6688121', 'lab': '5', 'trigger': 'weekly-schedule', 'vertex-ai-pipelines-run-billing-id': '8732878800192274432'}
+--- LATEST STATUS ---
+NAME= 8732878800192274432
+DISPLAY_NAME= itcs355-lab5-weekly-retrain
+STATE= PIPELINE_STATE_RUNNING
+CREATE_TIME= 2026-10-16T06:28:05.552513Z
+START_TIME= 2026-10-16T06:28:06.487999Z
+END_TIME= None
+SERVICE_ACCOUNT= itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+ERROR= None
+
+=== FINAL SCHEDULED PIPELINE STATUS ===
+PIPELINE_JOB_ID= 8732878800192274432
+DISPLAY_NAME= itcs355-lab5-weekly-retrain
+STATE= PIPELINE_STATE_SUCCEEDED
+CREATE_TIME= 2026-10-16T06:28:05.552513Z
+START_TIME= 2026-10-16T06:28:06.487999Z
+END_TIME= 2026-10-16T06:37:32.477679Z
+SERVICE_ACCOUNT= itcs355-lab2-train@itcs355-6688121.iam.gserviceaccount.com
+ERROR= None
+TASK evaluate-component=SUCCEEDED
+TASK train-component=SUCCEEDED
+TASK condition-1=NOT_TRIGGERED
+TASK validate-component=SUCCEEDED
+TASK ingest-component=SUCCEEDED
+TASK 8732878800192274432=SUCCEEDED
+
+=== FINAL SCHEDULER STATUS ===
+httpTarget:
+  oauthToken:
+    serviceAccountEmail: itcs355-lab4-deploy@itcs355-6688121.iam.gserviceaccount.com
+lastAttemptTime: '2026-10-16T06:28:05.354171Z'
+name: projects/itcs355-6688121/locations/asia-southeast1/jobs/itcs355-lab5-retrain-weekly
+schedule: 0 2 * * 0
+state: ENABLED
+status: {}
+timeZone: Asia/Bangkok
