@@ -1,0 +1,22 @@
+Service description,Service ID,SKU description,SKU ID,Usage amount,Usage unit,List cost (฿),Negotiated savings (฿),Savings programs (฿),Other savings (฿),Unrounded subtotal (฿),Subtotal (฿),Percent change in subtotal compared to previous period
+Artifact Registry,149C-F9EC-3994,Artifact Registry Network Internet Egress AsiaPacfic to AsiaPacfic,2CB3-644D-F192,0,gibibyte,0.00,0.00,0.00,-0.00,0.000006,0.00,New
+Vertex AI,C7E2-9256-1C43,Vertex AI: Online/Batch Prediction N1 Predefined Instance Ram running in Singapore for AI Platform,265F-3871-41BC,1.36,gibibyte hour,0.27,0.00,0.00,-0.27,0.000000,0.00,0%
+Cloud Storage,95FF-2EF5-5EA1,Standard Storage Singapore,76BA-5CAD-4338,0.02,gibibyte month,0.01,0.00,0.00,-0.01,0.000000,0.00,0%
+Cloud Storage,95FF-2EF5-5EA1,Regional Standard Class B Operations,7870-010B-2763,36,count,0.00,0.00,0.00,0.00,0.000000,0.00,0%
+Cloud Run,152E-C115-5142,Jobs CPU in asia-southeast1,827B-D6DA-48FA,780,second,0.57,0.00,0.00,-0.57,0.000000,0.00,New
+Cloud Scheduler,1F14-4801-0E16,Jobs,A5D6-43A2-28A7,1,count,0.00,0.00,0.00,0.00,0.000000,0.00,New
+Vertex AI,C7E2-9256-1C43,Vertex AI: Training/Pipelines on E2 Instance Ram running in Singapore,C09A-8DDD-38DA,0.17,gibibyte hour,0.02,0.00,0.00,-0.02,0.000000,0.00,New
+Vertex AI,C7E2-9256-1C43,Vertex AI: Training/Pipelines on SSD backed PD Capacity in Singapore,F453-DB75-93EA,0,gibibyte month,0.01,0.00,0.00,-0.01,0.000000,0.00,New
+Vertex AI,C7E2-9256-1C43,Vertex AI: Training/Pipelines on E2 Instance Core running in Singapore,F859-D89A-E00E,0.04,hour,0.05,0.00,0.00,-0.05,0.000000,0.00,New
+Cloud Storage,95FF-2EF5-5EA1,Regional Standard Class A Operations,4DBF-185F-A415,4,count,0.00,0.00,0.00,-0.00,-0.000001,-0.00,New
+Cloud Run,152E-C115-5142,Jobs Memory in asia-southeast1,9A4F-60E0-BA38,780,gibibyte second,0.06,0.00,0.00,-0.06,-0.000001,-0.00,New
+Cloud Monitoring,58CD-E7C3-72CA,Metric Volume,A924-09D0-8854,0,mebibyte,0.00,0.00,0.00,-0.00,-0.000001,-0.00,New
+Vertex AI,C7E2-9256-1C43,Vertex AI: Online/Batch Prediction N1 Predefined Instance Core running in Singapore for AI Platform,F185-51E6-37CC,0.36,hour,0.55,0.00,0.00,-0.55,-0.000001,-0.00,0%
+Cloud Logging,5490-F7B7-8DF6,Log Storage cost,143F-A1B0-E0BE,0,gibibyte,0.00,0.00,0.00,-0.00,-0.000002,-0.00,0%
+Artifact Registry,149C-F9EC-3994,Artifact Registry Network Intra Region Egress,546B-E8F2-6FF5,1.3,gibibyte,0.00,0.00,0.00,-0.00,-0.000002,-0.00,0%
+Dataplex,51C6-B3F5-9B38,Dataplex Governance Metadata Storage Singapore,7068-B1CD-34EF,0,gibibyte month,-0.00,0.00,0.00,0.00,-0.000002,-0.00,0%
+Vertex AI,C7E2-9256-1C43,AI Pipeline job: Managed Pipeline job count,2B84-9CF1-241F,1,count,1.01,0.00,0.00,-1.01,-0.000003,-0.00,New
+Artifact Registry,149C-F9EC-3994,Artifact Registry Storage,8502-299A-ABAF,0.49,gibibyte month,0.00,0.00,0.00,-0.00,-0.000003,-0.00,0%
+,,,,,,,,,Subtotal,0.000000,0.00
+,,,,,,,,,Tax,0.000000,0.00
+,,,,,,,,,Total,0.000000,0.00

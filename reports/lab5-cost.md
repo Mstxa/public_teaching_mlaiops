@@ -1,12 +1,12 @@
-# Lab 5 — Cost Report (Provisional)
+# Lab 5 — Cost Report
 
 Provider `gcp` · planning instance `n1-standard-2` · 3.80 THB/hour
 
-> Billing observation captured on 2026-10-15. The console graph contained posted
-> usage only through 2026-10-14, before the first Lab 5 pipeline run on 2026-10-15.
-> Therefore the Lab 5 actual and gap remain pending rather than being reported as a
-> misleading zero. Evidence: [billing summary](evidence/lab5-billing-summary-provisional.png)
-> and [service table](evidence/lab5-billing-services-provisional.png).
+> Billing was finalised from the CSV export captured on 2026-10-16. The export
+> contains one managed pipeline job and its Training/Pipelines SKUs. Evidence:
+> [billing CSV](evidence/lab5-billing-export-2026-10-16.csv),
+> [billing summary](evidence/lab5-billing-delay-2026-10-16-summary.png), and
+> [service table](evidence/lab5-billing-delay-2026-10-16-services.png).
 
 ## 1. Estimate made before running
 
@@ -15,45 +15,50 @@ planned line was 30.40 THB for keeping a serving instance online for eight hours
 
 ## 2. Actual from billing
 
-**Pending the normal Cloud Billing reporting delay.** The project-level report showed
-1.46 THB of current-month usage before savings, -1.46 THB of savings, and 0.00 THB
-net. Those values include earlier labs and are not a tag-filtered Lab 5 actual:
+The Lab 5 managed pipeline incurred **1.09 THB before credits**, received
+**-1.09 THB** of promotional/free-trial savings, and therefore had a **0.00 THB net
+subtotal**. The attribution is supported by one `AI Pipeline job: Managed Pipeline
+job count` and the associated Training/Pipelines compute and disk SKUs:
 
-| Current-month service | Usage cost (THB) | Net subtotal (THB) |
-|---|---:|---:|
-| Artifact Registry | 0.00 | 0.00 |
-| Cloud Run | 0.63 | 0.00 |
-| Cloud Monitoring | 0.00 | 0.00 |
-| Cloud Storage | 0.01 | 0.00 |
-| Vertex AI | 0.82 | 0.00 |
-| Dataplex | 0.00 | 0.00 |
-| Cloud Logging | 0.00 | 0.00 |
-| **Total shown** | **1.46** | **0.00** |
+| Lab 5 SKU | Usage | List cost (THB) | Savings (THB) | Net (THB) |
+|---|---:|---:|---:|---:|
+| Managed Pipeline job | 1 job | 1.01 | -1.01 | 0.00 |
+| E2 instance core | 0.04 hour | 0.05 | -0.05 | 0.00 |
+| E2 instance RAM | 0.17 GiB-hour | 0.02 | -0.02 | 0.00 |
+| SSD-backed persistent disk | rounded to 0 GiB-month | 0.01 | -0.01 | 0.00 |
+| **Lab 5 actual** | | **1.09** | **-1.09** | **0.00** |
 
-The report must be updated after charges through 2026-10-15 appear, filtered to the
-Lab 5 labels, and stated both before and after credits.
+The current-month Vertex AI total moved from 0.82 THB in the pre-run observation to
+1.91 THB in the export. The 1.09 THB increase exactly matches the four Lab 5 rows
+above. Other current-month services are excluded because they include earlier labs.
 
 ## 3. Gap
 
-**Pending.** Computing `0.00 - 70.00` now would describe billing latency and credits,
-not the difference between estimated and consumed resources. The expected downward
-drivers are the short pipeline duration, no paid online model deployment because the
-evaluation gate rejected the candidate, small artifacts, and free-tier or promotional
-credits. Failed deployment experiments and delayed resource deletion are upward
-drivers and must be included once posted.
+Using before-credit resource cost, the gap is:
+
+`1.09 - 70.00 = -68.91 THB`
+
+Actual cost was **68.91 THB below estimate**, or about **98.4% lower**. The estimate
+was deliberately conservative: the pipeline was short, the evaluation gate rejected
+the candidate before a paid GCP serving endpoint was created, artifacts were small,
+and the eight-hour serving allowance was unused. Credits reduced the billed net to
+zero but are not used to hide the consumed-resource comparison.
 
 ## 4. Breakdown by component
 
-| Component | Actual THB | Status and attribution rule |
+| Component | Actual THB before credits | Evidence and attribution |
 |---|---:|---|
-| Training | Pending | Vertex AI custom-job SKUs carrying the Lab 5 labels |
-| Storage | Pending | Cloud Storage bytes and operations for Lab 5 artifacts |
-| Serving | Pending | Expected near zero: the gated Vertex deployment was not triggered |
-| Pipeline | Pending | Vertex AI Pipelines orchestration and component execution |
-| Monitoring | Pending | Cloud Logging and Cloud Monitoring usage |
+| Training compute and disk | 0.08 | Three Training/Pipelines E2 and disk SKU rows |
+| Pipeline orchestration | 1.01 | One managed Pipeline job count |
+| Storage | 0.00 rounded | Current-month Cloud Storage remained 0.01 THB; Lab 5 increment rounded to zero |
+| Serving | 0.00 | The failed gate prevented GCP endpoint creation |
+| Monitoring and logging | 0.00 | Exported rows rounded to zero and were not incremental to Lab 5 |
+| LLM evaluation | 0.00 | Evaluation used committed recorded responses rather than paid online calls |
+| **Total** | **1.09** | Reconciles to the increase in current-month Vertex AI cost |
 
-The unfiltered current-month table above is retained as evidence, but is deliberately
-not copied into this component breakdown because it includes previous labs.
+The project-month CSV is retained unchanged. Its unrelated Cloud Run, prediction,
+storage, monitoring, logging, scheduler, registry, and Dataplex rows are not assigned
+to Lab 5.
 
 ## 5. Cost per 1,000 predictions
 
@@ -87,8 +92,8 @@ by about 79% but remained below the committed 500 ms target. For Lab 5, the eval
 gate supplied an additional optimisation: it did not create a paid serving endpoint for
 a candidate that failed to improve on production.
 
-## Finalisation
+## Billing conclusion
 
-After billing has posted for 2026-10-15, replace the pending values with the
-tag-filtered service/SKU amounts, calculate the numeric gap from 70.00 THB, and retain
-the before-credit and net totals so promotional savings do not hide resource usage.
+The billing export closes the provisional observation: Lab 5 consumed 1.09 THB of
+resources before credits and billed 0.00 THB net. The cost report uses the before-credit
+amount for estimate accuracy and records the credits separately.
